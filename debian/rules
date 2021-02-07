@@ -1,0 +1,22 @@
+#!/usr/bin/make -f
+
+VERSION := $(word 1, $(subst -, ,$(shell dpkg-parsechangelog -SVersion)))
+
+%:
+	dh ${@}
+
+execute_after_dh_auto_clean:
+	rm -rf bin
+
+override_dh_auto_build:
+	TRAVIS_TAG=$(VERSION) GOPATH=$(CURDIR)/vendor make build
+
+override_dh_auto_install:
+	mkdir -p debian/netdata-plugins-go/usr/lib/netdata/plugins.d
+	cp bin/godplugin debian/netdata-plugins-go/usr/lib/netdata/plugins.d/go.d.plugin
+
+	mkdir -p debian/netdata-plugins-go/usr/lib/netdata/conf.d
+	cp -r config/* debian/netdata-plugins-go/usr/lib/netdata/conf.d
+
+override_dh_auto_test:
+	# disabled, takes forever

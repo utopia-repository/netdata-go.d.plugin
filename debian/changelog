@@ -1,0 +1,5 @@
+netdata-go.d.plugin (0.27.0-1) sid; urgency=medium
+
+  * Initial upload to sid (Closes: #951837).
+
+ -- Daniel Baumann <daniel.baumann@progress-linux.org>  Sun, 07 Feb 2021 15:55:55 +0100
