@@ -1,3 +1,17 @@
+netdata-go.d.plugin (0.27.0-0utopia1) unstable; urgency=medium
+
+  * Upload to Utopia Repository.
+  * Fix watch file to only pick up source tarballs, not prebuilt binaries.
+  * Fix build in pbuilder by setting an explicit HOME.
+  * Build depend on ca-certificates to fix "x509: certificate signed by
+    unknown authority" errors
+  * Enforce stricter version constraint on netdata-core:
+    (>= 1.29~, << 1.30~)
+    Netdata upstream does not appear to support mismatched core and go.d
+    versions
+
+ -- James Lu <james@overdrivenetworks.com>  Sat, 31 Jul 2021 13:42:55 -0700
+
 netdata-go.d.plugin (0.27.0-1) sid; urgency=medium
 
   * Initial upload to sid (Closes: #951837).
