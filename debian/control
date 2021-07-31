@@ -37,7 +37,8 @@ Package: netdata-plugins-go
 Section: net
 Architecture: linux-any
 Depends:
- netdata-core (>= ${source:Version}) | netdata-core-no-sse (>= ${source:Version}),
+ netdata-core (>= 1.29~) | netdata-core-no-sse (>= 1.29~),
+ netdata-core (<< 1.30~) | netdata-core-no-sse (<< 1.30~),
  ${misc:Depends},
  ${shlibs:Depends},
 Provides:
