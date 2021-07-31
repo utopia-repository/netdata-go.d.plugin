@@ -3,6 +3,7 @@ Section: net
 Priority: optional
 Maintainer: Daniel Baumann <daniel.baumann@progress-linux.org>,
 Build-Depends:
+ ca-certificates,
  debhelper-compat (= 13),
  golang-any,
  golang-github-apparentlymart-go-cidr-dev,
