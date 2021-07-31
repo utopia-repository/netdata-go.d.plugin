@@ -1,6 +1,7 @@
 #!/usr/bin/make -f
 
 VERSION := $(word 1, $(subst -, ,$(shell dpkg-parsechangelog -SVersion)))
+export HOME = $(CURDIR)
 
 %:
 	dh ${@}
