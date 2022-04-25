@@ -1,0 +1,245 @@
+From: Ilya Mashchenko <ilya@netdata.cloud>
+Date: Tue, 2 Feb 2021 16:17:30 +0300
+Subject: modules/prometheus: add `force_absolute_algorithm` config option
+ (#545)
+
+---
+ config/go.d/prometheus.conf                 |  8 +++++++
+ modules/prometheus/README.md                | 20 +++++++++++++++++
+ modules/prometheus/collect_gauge_counter.go |  9 ++++++++
+ modules/prometheus/init.go                  | 13 ++++++++++++
+ modules/prometheus/prometheus.go            | 33 ++++++++++++++++++-----------
+ modules/prometheus/prometheus_test.go       | 30 ++++++++++++++++++++++++++
+ 6 files changed, 101 insertions(+), 12 deletions(-)
+
+diff --git a/config/go.d/prometheus.conf b/config/go.d/prometheus.conf
+index b29f011..9118846 100644
+--- a/config/go.d/prometheus.conf
++++ b/config/go.d/prometheus.conf
+@@ -83,6 +83,14 @@
+ #        - selector: <PATTERN>
+ #          by_label: <a space separated list of labels names>
+ #
++#  - force_absolute_algorithm
++#    Force cumulative metrics charts dimensions algorithm to be absolute
++#    Pattern syntax is https://golang.org/pkg/path/filepath/#Match
++#    Syntax:
++#    force_absolute_algorithm:
++#      - '*_sum'
++#      - '*_count'
++#
+ #  - max_time_series_per_metric
+ #    Time series per metric (metric name) limit. Metrics with number of time series > limit are skipped.
+ #    Syntax:
+diff --git a/modules/prometheus/README.md b/modules/prometheus/README.md
+index db664f8..3ac8cc3 100644
+--- a/modules/prometheus/README.md
++++ b/modules/prometheus/README.md
+@@ -48,6 +48,26 @@ jobs:
+     url: http://203.0.113.0:9182/metrics
+ ```
+ 
++### Dimension algorithm
++
++`incremental` algorithm (values displayed as rate) used when:
++
++- the metric type is `Counter`, `Histogram` or `Summary`.
++- the metrics suffix is `_total`, `_sum` or `_count`.
++
++`absoulte` algorithm (values displayed as is) is used in all other cases.
++
++Use `force_absolute_algorithm` configuration option to overwrite the logic.
++
++```yaml
++jobs:
++  - name: node_exporter_local
++    url: http://127.0.0.1:9100/metrics
++    force_absolute_algorithm:
++      - '*_sum'
++      - '*_count'
++```
++
+ ### Time Series Selector (filtering)
+ 
+ To filter unwanted time series (metrics) use `selector` configuration option.
+diff --git a/modules/prometheus/collect_gauge_counter.go b/modules/prometheus/collect_gauge_counter.go
+index e5c76f7..de09072 100644
+--- a/modules/prometheus/collect_gauge_counter.go
++++ b/modules/prometheus/collect_gauge_counter.go
+@@ -1,6 +1,9 @@
+ package prometheus
+ 
+ import (
++	"strings"
++
++	"github.com/netdata/go.d.plugin/agent/module"
+ 	"github.com/netdata/go.d.plugin/pkg/prometheus"
+ )
+ 
+@@ -29,6 +32,9 @@ func (p *Prometheus) collectAny(mx map[string]int64, pms prometheus.Metrics, met
+ 		if !cache.hasChart(chartID) {
+ 			chart := anyChart(chartID, pm, meta)
+ 			cache.putChart(chartID, chart)
++			if strings.HasSuffix(chart.Units, "/s") && p.forceAbsoluteAlgorithm.MatchString(pm.Name()) {
++				chart.Units = chart.Units[:len(chart.Units)-2]
++			}
+ 			if err := p.Charts().Add(chart); err != nil {
+ 				p.Warning(err)
+ 			}
+@@ -37,6 +43,9 @@ func (p *Prometheus) collectAny(mx map[string]int64, pms prometheus.Metrics, met
+ 			cache.putDim(dimID)
+ 			chart := cache.getChart(chartID)
+ 			dim := anyChartDimension(dimID, dimName, pm, meta)
++			if dim.Algo == module.Incremental && p.forceAbsoluteAlgorithm.MatchString(pm.Name()) {
++				dim.Algo = module.Absolute
++			}
+ 			if err := chart.AddDim(dim); err != nil {
+ 				p.Warning(err)
+ 			}
+diff --git a/modules/prometheus/init.go b/modules/prometheus/init.go
+index fdc3971..dfbf747 100644
+--- a/modules/prometheus/init.go
++++ b/modules/prometheus/init.go
+@@ -6,6 +6,7 @@ import (
+ 	"io/ioutil"
+ 	"strings"
+ 
++	"github.com/netdata/go.d.plugin/pkg/matcher"
+ 	"github.com/netdata/go.d.plugin/pkg/prometheus"
+ 	"github.com/netdata/go.d.plugin/pkg/prometheus/selector"
+ 	"github.com/netdata/go.d.plugin/pkg/web"
+@@ -77,6 +78,18 @@ func (p Prometheus) initOptionalGrouping() ([]optionalGrouping, error) {
+ 	return optGrps, nil
+ }
+ 
++func (p Prometheus) initForceAbsoluteAlgorithm() (matcher.Matcher, error) {
++	mr := matcher.FALSE()
++	for _, v := range p.ForceAbsoluteAlgorithm {
++		m, err := matcher.NewGlobMatcher(v)
++		if err != nil {
++			return nil, err
++		}
++		mr = matcher.Or(mr, m)
++	}
++	return mr, nil
++}
++
+ func labelsContainsAll(lbs labels.Labels, names ...string) bool {
+ 	switch len(names) {
+ 	case 0:
+diff --git a/modules/prometheus/prometheus.go b/modules/prometheus/prometheus.go
+index 0fefe00..542ddfb 100644
+--- a/modules/prometheus/prometheus.go
++++ b/modules/prometheus/prometheus.go
+@@ -3,11 +3,11 @@ package prometheus
+ import (
+ 	"time"
+ 
++	"github.com/netdata/go.d.plugin/agent/module"
++	"github.com/netdata/go.d.plugin/pkg/matcher"
+ 	"github.com/netdata/go.d.plugin/pkg/prometheus"
+ 	"github.com/netdata/go.d.plugin/pkg/prometheus/selector"
+ 	"github.com/netdata/go.d.plugin/pkg/web"
+-
+-	"github.com/netdata/go.d.plugin/agent/module"
+ )
+ 
+ func init() {
+@@ -41,13 +41,14 @@ func New() *Prometheus {
+ 
+ type (
+ 	Config struct {
+-		web.HTTP        `yaml:",inline"`
+-		BearerTokenFile string        `yaml:"bearer_token_file"` // TODO: part of web.Request?
+-		MaxTS           int           `yaml:"max_time_series"`
+-		MaxTSPerMetric  int           `yaml:"max_time_series_per_metric"`
+-		Selector        selector.Expr `yaml:"selector"`
+-		Grouping        []GroupOption `yaml:"group"`
+-		ExpectedPrefix  string        `yaml:"expected_prefix"`
++		web.HTTP               `yaml:",inline"`
++		BearerTokenFile        string        `yaml:"bearer_token_file"` // TODO: part of web.Request?
++		MaxTS                  int           `yaml:"max_time_series"`
++		MaxTSPerMetric         int           `yaml:"max_time_series_per_metric"`
++		Selector               selector.Expr `yaml:"selector"`
++		Grouping               []GroupOption `yaml:"group"`
++		ExpectedPrefix         string        `yaml:"expected_prefix"`
++		ForceAbsoluteAlgorithm []string      `yaml:"force_absolute_algorithm"`
+ 	}
+ 	GroupOption struct {
+ 		Selector string `yaml:"selector"`
+@@ -61,9 +62,10 @@ type (
+ 		prom   prometheus.Prometheus
+ 		charts *module.Charts
+ 
+-		optGroupings []optionalGrouping
+-		cache        collectCache
+-		skipMetrics  map[string]bool
++		forceAbsoluteAlgorithm matcher.Matcher
++		optGroupings           []optionalGrouping
++		cache                  collectCache
++		skipMetrics            map[string]bool
+ 	}
+ 	optionalGrouping struct {
+ 		sr  selector.Selector
+@@ -93,6 +95,13 @@ func (p *Prometheus) Init() bool {
+ 	}
+ 	p.optGroupings = optGrps
+ 
++	mr, err := p.initForceAbsoluteAlgorithm()
++	if err != nil {
++		p.Errorf("init force_absolute_algorithm (%v): %v", p.ForceAbsoluteAlgorithm, err)
++		return false
++	}
++	p.forceAbsoluteAlgorithm = mr
++
+ 	return true
+ }
+ 
+diff --git a/modules/prometheus/prometheus_test.go b/modules/prometheus/prometheus_test.go
+index 26c11cc..17d7442 100644
+--- a/modules/prometheus/prometheus_test.go
++++ b/modules/prometheus/prometheus_test.go
+@@ -8,6 +8,7 @@ import (
+ 	"testing"
+ 
+ 	"github.com/netdata/go.d.plugin/agent/module"
++	"github.com/netdata/go.d.plugin/pkg/matcher"
+ 	"github.com/netdata/go.d.plugin/pkg/prometheus/selector"
+ 	"github.com/netdata/go.d.plugin/pkg/tlscfg"
+ 	"github.com/netdata/go.d.plugin/pkg/web"
+@@ -505,6 +506,35 @@ func TestPrometheus_Collect(t *testing.T) {
+ 	}
+ }
+ 
++func TestPrometheus_ForceAbsoluteAlgorithm(t *testing.T) {
++	input := [][]string{
++		{
++			`# HELP prometheus_sd_kubernetes_events_total The number of Kubernetes events handled.`,
++			`# TYPE prometheus_sd_kubernetes_events_total counter`,
++			`prometheus_sd_kubernetes_events_total{event="add",role="endpoints"} 1`,
++			`prometheus_sd_kubernetes_events_total{event="add",role="ingress"} 2`,
++			`prometheus_sd_kubernetes_events_total{event="add",role="node"} 3`,
++			`prometheus_sd_kubernetes_events_total{event="add",role="pod"} 4`,
++			`prometheus_sd_kubernetes_events_total{event="add",role="service"} 5`,
++		},
++	}
++
++	prom, cleanup := preparePrometheus(t, input)
++	defer cleanup()
++	prom.forceAbsoluteAlgorithm = matcher.TRUE()
++
++	assert.NotEmpty(t, prom.Collect())
++
++	for _, c := range *prom.Charts() {
++		if c.ID != "prometheus_sd_kubernetes_events_total" {
++			continue
++		}
++		for _, d := range c.Dims {
++			assert.Equal(t, module.Absolute, d.Algo)
++		}
++	}
++}
++
+ func TestPrometheus_Collect_WithSelector(t *testing.T) {
+ 	tests := map[string]struct {
+ 		input             [][]string
