@@ -1,3 +1,10 @@
+netdata-go.d.plugin (0.40.3-0utopia1~deb11u1) bullseye; urgency=medium
+
+  * New upstream release.
+  * patches: drop; merged upstream
+
+ -- James Lu <james@overdrivenetworks.com>  Sat, 08 Oct 2022 13:12:20 -0700
+
 netdata-go.d.plugin (0.27.0-0utopia2) unstable; urgency=medium
 
   * Add patch 0001-modules-prometheus-add-force_absolute_algorithm-conf.patch
