@@ -15,17 +15,19 @@ This module will monitor one or more `Lighttpd2` servers, depending on your conf
 
 - `lighttpd2` with enabled [`mod_status`](https://doc.lighttpd.net/lighttpd2/mod_status.html)
 
-## Charts
+## Metrics
 
-It produces the following charts:
+All metrics have "lighttpd2." prefix.
 
-- Requests in `requests/s`
-- Status Codes in `requests/s`
-- Traffic in `kilobits/s`
-- Connections in `connections`
-- Connection States in  `connection`
-- Memory Usage in `KiB`
-- Uptime in `seconds`
+| Metric            | Scope  |                               Dimensions                                |    Units    |
+|-------------------|:------:|:-----------------------------------------------------------------------:|:-----------:|
+| requests          | global |                                requests                                 | requests/s  |
+| status_codes      | global |                         1xx, 2xx, 3xx, 4xx, 5xx                         | requests/s  |
+| traffic           | global |                                 in, out                                 | kilobits/s  |
+| connections       | global |                               connections                               | connections |
+| connection_states | global | start, read_header, handle_request, write_response, keepalive, upgraded |    state    |
+| memory_usage      | global |                                  usage                                  |     KiB     |
+| uptime            | global |                                 uptime                                  |   seconds   |
 
 ## Configuration
 
@@ -56,17 +58,21 @@ module [configuration file](https://github.com/netdata/go.d.plugin/blob/master/c
 To troubleshoot issues with the `lighttpd2` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m lighttpd2
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m lighttpd2
+  ```

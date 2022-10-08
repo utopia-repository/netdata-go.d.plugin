@@ -7,35 +7,31 @@ sidebar_label: "NGINX VTS"
 # NGINX VTS monitoring with Netdata
 
 `nginxvts` can monitor statistics of NGINX which configured
-with [`nginx-module-vts`](https://github.com/vozlt/nginx-module-vts), including:
+with [`nginx-module-vts`](https://github.com/vozlt/nginx-module-vts).
 
-- Nginx uptime (`seconds`):
-    - Uptime
-- Nginx connections (`requests/s`):
-    - active, reading, writing, waiting, accepted, handled, total
+## Metrics
 
-- Shared memory size (`bytes`)
-    - Maximum size of shared memory
-    - Current size of shared memory
-- Number of node using in shared memory (`nodes`)
+All metrics have "nginxvts." prefix.
 
-- Total number of client requests (`requests/s`)
-- Total Response code (`responses/s`)
-    - 1xx, 2xx, 3xx, 4xx, 5xx
-- Total server traffic (`bytes/s`)
-    - The total number of bytes received from clients
-    - The total number of bytes sent to clients
-- Total server cache (`responses/s`)
-    - miss, bypass, expired, stale, updating, revalidated, hit, scarce
+| Metric                 | Scope  |                            Dimensions                            |     Units     |
+|------------------------|:------:|:----------------------------------------------------------------:|:-------------:|
+| requests_total         | global |                             requests                             |  requests/s   |
+| active_connections     | global |                              active                              |  connections  |
+| connections_total      | global |           reading, writing, waiting, accepted, handled           | connections/s |
+| uptime                 | global |                              uptime                              |    seconds    |
+| shm_usage              | global |                            max, used                             |     bytes     |
+| shm_used_node          | global |                               used                               |     nodes     |
+| server_requests_total  | global |                             requests                             |  requests/s   |
+| server_responses_total | global |                     1xx, 2xx, 3xx, 4xx, 5xx                      |  responses/s  |
+| server_traffic_total   | global |                             in, out                              |    bytes/s    |
+| server_cache_total     | global | miss, bypass, expired, stale, updating, revalidated, hit, scarce |   events/s    |
 
 Refer [`nginx-module-vts`](https://github.com/vozlt/nginx-module-vts#json) for more information.
 
-`(Other statistics like UpsteamZones, FilterZones will be added later)`
-
 ## Configuration
 
-Edit the `go.d/nginxvts.conf` configuration file using `edit-config` from the your
-agent's [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
+Edit the `go.d/nginxvts.conf` configuration file using `edit-config` from the
+Netdata [config directory](https://learn.netdata.cloud/docs/configure/nodes), which is typically at `/etc/netdata`.
 
 ```bash
 cd /etc/netdata # Replace this path with your Netdata config directory
@@ -60,17 +56,21 @@ module [configuration file](https://github.com/netdata/go.d.plugin/blob/master/c
 To troubleshoot issues with the `nginxvts` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` orchestrator to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m nginxvts
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m nginxvts
+  ```

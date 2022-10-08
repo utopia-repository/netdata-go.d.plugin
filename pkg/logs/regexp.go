@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package logs
 
 import (
@@ -44,6 +46,9 @@ func (p *RegExpParser) ReadLine(line LogLine) error {
 	row, err := p.r.ReadSlice('\n')
 	if err != nil && len(row) == 0 {
 		return err
+	}
+	if len(row) > 0 && row[len(row)-1] == '\n' {
+		row = row[:len(row)-1]
 	}
 	return p.Parse(row, line)
 }

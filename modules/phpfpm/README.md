@@ -14,19 +14,22 @@ This module will monitor one or more `php-fpm` instances, depending on your conf
 
 ## Requirements
 
-- `php-fpm` with enabled `status` page
-- access to `status` page via web server
+- `php-fpm` with enabled `status` page:
+    - open the `php-fpm` configuration file.
+    - inside this file, find and uncomment the variable `pm.status_path = /status`.
 
-## Charts
+## Metrics
 
-It produces following charts:
+All metrics have "phpfpm." prefix.
 
-- Active Connections in `connections`
-- Requests in `requests/s`
-- Performance in `status`
-- Requests Duration Among All Idle Processes in `milliseconds`
-- Last Request CPU Usage Among All Idle Processes in `percentage`
-- Last Request Memory Usage Among All Idle Processes in `KB`
+| Metric           | Scope  |             Dimensions              |    Units     |
+|------------------|:------:|:-----------------------------------:|:------------:|
+| connections      | global |      active, max_active, idle       | connections  |
+| requests         | global |              requests               |  requests/s  |
+| performance      | global | max_children_reached, slow_requests |    status    |
+| request_duration | global |            min, max, avg            | milliseconds |
+| request_cpu      | global |            min, max, avg            |  percentage  |
+| request_mem      | global |            min, max, avg            |      KB      |
 
 ## Configuration
 
@@ -38,7 +41,7 @@ cd /etc/netdata # Replace this path with your Netdata config directory
 sudo ./edit-config go.d/phpfpm.conf
 ```
 
-Needs only `url` or `socket`. Here is an example for local and remote servers:
+Needs only `url`, `socket` or `address`. Here is an example for local and remote servers:
 
 ```yaml
 jobs:
@@ -53,6 +56,9 @@ jobs:
 
   - name: remote
     url: http://203.0.113.10/status?full&json
+
+  - name: remote
+    address: 203.0.113.10:9000
 ```
 
 For all available options please see
@@ -63,7 +69,7 @@ module [configuration file](https://github.com/netdata/go.d.plugin/blob/master/c
 To troubleshoot issues with the `phpfpm` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
+First, navigate to your plugins' directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
 system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
 to the `netdata` user.
 

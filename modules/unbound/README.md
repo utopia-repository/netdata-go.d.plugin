@@ -30,57 +30,55 @@ If TLS is enabled, in addition:
 - `control-key-file` should be readable by `netdata` user
 - `control-cert-file` should be readable by `netdata` user
 
-For auto detection parameters from `unbound.conf`:
+For auto-detection parameters from `unbound.conf`:
 
 - `unbound.conf` should be readable by `netdata` user
 - if you have several configuration files (include feature) all of them should be readable by `netdata` user
 
-## Charts
+## Metrics
 
-Module produces following summary charts:
+All metrics have "vcsa." prefix.
 
-- Received Queries in `queries`
-- Rate Limited Queries in `queries`
-- DNSCrypt Queries in `queries`
-- Cache Statistics in `events`
-- Cache Statistics Percentage in `percentage`
-- Cache Prefetches in `prefetches`
-- Replies Served From Expired Cache in `replies`
-- Replies That Needed Recursive Processing in `replies`
-- Time Spent On Recursive Processing in `milliseconds`
-- Request List Usage in `queries`
-- Current Request List Usage in `queries`
-- Request List Jostle List Events in `queries`
-- TCP Handler Buffers in `buffers`
-- Uptime `seconds`
-
-If `extended-statistics` is enabled:
-
-- Queries By Type in `queries`
-- Queries By Class in `queries`
-- Queries By OpCode in `queries`
-- Queries By Flag in `queries`
-- Replies By RCode in `replies`
-- Cache Items Count in `items`
-- Cache Memory in `KB`
-- Module Memory in `KB`
-- TCP and TLS Stream Wait Buffer Memory in `KB`
-
-Per thread charts (only if number of threads > 1):
-
-- Received Queries in `queries`
-- Rate Limited Queries in `queries`
-- DNSCrypt Queries in `queries`
-- Cache Statistics in `events`
-- Cache Statistics Percentage in `events`
-- Cache Prefetches in `prefetches`
-- Replies Served From Expired Cache in `replies`
-- Replies That Needed Recursive Processing in `replies`
-- Time Spent On Recursive Processing in `milliseconds`
-- Request List Usage in `queries`
-- Current Request List Usage in `queries`
-- Request List Jostle List Events in `queries`
-- TCP Handler Buffers in `buffers`
+| Metric                            | Scope  |                       Dimensions                       |    Units     |
+|-----------------------------------|:------:|:------------------------------------------------------:|:------------:|
+| queries                           | global |                        queries                         |   queries    |
+| queries_ip_ratelimited            | global |                      ratelimited                       |   queries    |
+| dnscrypt_queries                  | global |          crypted, cert, cleartext, malformed           |   queries    |
+| cache                             | global |                       hits, miss                       |    events    |
+| cache_percentage                  | global |                       hits, miss                       |  percentage  |
+| prefetch                          | global |                       prefetches                       |  prefetches  |
+| expired                           | global |                        expired                         |   replies    |
+| zero_ttl_replies                  | global |                        zero_ttl                        |   replies    |
+| recursive_replies                 | global |                       recursive                        |   replies    |
+| recursion_time                    | global |                      avg, median                       | milliseconds |
+| request_list_usage                | global |                        avg, max                        |   queries    |
+| current_request_list_usage        | global |                       all, users                       |   queries    |
+| request_list_jostle_list          | global |                  overwritten, dropped                  |   queries    |
+| tcpusage                          | global |                         usage                          |   buffers    |
+| uptime                            | global |                          time                          |   seconds    |
+| thread_cache                      | thread |                       hits, miss                       |    events    |
+| thread_cache_percentage           | thread |                       hits, miss                       |  percentage  |
+| thread_prefetch                   | thread |                       prefetches                       |  prefetches  |
+| thread_expired                    | thread |                        expired                         |   replies    |
+| thread_zero_ttl_replies           | thread |                        zero_ttl                        |   replies    |
+| thread_recursive_replies          | thread |                       recursive                        |   replies    |
+| thread_recursion_time             | thread |                      avg, median                       | milliseconds |
+| thread_request_list_usage         | thread |                        avg, max                        |   queries    |
+| thread_current_request_list_usage | thread |                       all, users                       |   queries    |
+| thread_request_list_jostle_list   | thread |                  overwritten, dropped                  |   queries    |
+| thread_tcpusage                   | thread |                         usage                          |   buffers    |
+| cache_memory                      | global | message, rrset, dnscrypt_nonce, dnscrypt_shared_secret |      KB      |
+| mod_memory                        | global |       iterator, respip, validator, subnet, ipsec       |      KB      |
+| mem_streamwait                    | global |                       streamwait                       |      KB      |
+| cache_count                       | global | infra, key, msg, rrset, dnscrypt_nonce, shared_secret  |    items     |
+| type_queries                      | global |           <i>a dimension per query type</i>            |   queries    |
+| class_queries                     | global |           <i>a dimension per query class</i>           |   queries    |
+| opcode_queries                    | global |          <i>a dimension per query opcode</i>           |   queries    |
+| flag_queries                      | global |             qr, aa, tc, rd, ra, z, ad, cd              |   queries    |
+| rcode_answers                     | global |           <i>a dimension per reply rcode</i>           |   replies    |
+| thread_queries                    | global |                        queries                         |   queries    |
+| thread_queries_ip_ratelimited     | global |                      ratelimited                       |   queries    |
+| thread_dnscrypt_queries           | global |          crypted, cert, cleartext, malformed           |   queries    |
 
 ## Configuration
 
@@ -93,7 +91,7 @@ sudo ./edit-config go.d/unbound.conf
 ```
 
 This Unbound collector only needs the `address` to a server's `remote-control` interface if TLS is disabled or `address`
-of unix socket. Otherwise you need to set path to the `control-key-file` and `control-cert-file` files.
+of unix socket. Otherwise, you need to set path to the `control-key-file` and `control-cert-file` files.
 
 The module tries to auto-detect following parameters reading `unbound.conf`:
 
@@ -104,7 +102,7 @@ The module tries to auto-detect following parameters reading `unbound.conf`:
 - tls_key
 
 Module supports both cumulative and non-cumulative modes. Default is non-cumulative. If your server has enabled
-`statistics-cumulative`, but the module fails to auto-detect it (`unbound.conf` is not readable or it is a remote
+`statistics-cumulative`, but the module fails to auto-detect it (`unbound.conf` is not readable, or it is a remote
 server), you need to set it manually in the configuration file.
 
 Here is an example for several servers:
@@ -148,17 +146,21 @@ have the control protocol set up correctly.
 To troubleshoot issues with the `unbound` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m unbound
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m unbound
+  ```

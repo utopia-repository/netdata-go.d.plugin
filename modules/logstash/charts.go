@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package logstash
 
 import (
@@ -112,11 +114,11 @@ var charts = Charts{
 	{
 		ID:    "open_file_descriptors",
 		Title: "Open File Descriptors",
-		Units: "count",
+		Units: "fd",
 		Fam:   "processes",
 		Ctx:   "logstash.open_file_descriptors",
 		Dims: Dims{
-			{ID: "process_open_file_descriptors", Name: "open file descriptors"},
+			{ID: "process_open_file_descriptors", Name: "open"},
 		},
 	},
 	// events

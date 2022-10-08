@@ -16,22 +16,24 @@ This module monitors `Solr` request handler statistics.
 
 - `Solr` version 6.4+
 
-## Charts
+## Metrics
 
-It produces the following charts per core:
+All metrics have "solr." prefix.
 
-- Search Requests in `requests/s`
-- Search Errors in `errors/s`
-- Search Errors By Type in `errors/s`
-- Search Requests Processing Time in `milliseconds`
-- Search Requests Timings in `milliseconds`
-- Search Requests Processing Time Percentile in `milliseconds`
-- Update Requests in `requests/s`
-- Update Errors in `errors/s`
-- Update Errors By Type in `errors/s`
-- Update Requests Processing Time in `milliseconds`
-- Update Requests Timings in `milliseconds`
-- Update Requests Processing Time Percentile in `milliseconds`
+| Metric                                     | Scope  |        Dimensions        |    Units     |
+|--------------------------------------------|:------:|:------------------------:|:------------:|
+| search_requests                            | global |          search          |  requests/s  |
+| search_errors                              | global |          errors          |   errors/s   |
+| search_errors_by_type                      | global | client, server, timeouts |   errors/s   |
+| search_requests_processing_time            | global |           time           | milliseconds |
+| search_requests_timings                    | global |  min, median, mean, max  | milliseconds |
+| search_requests_processing_time_percentile | global |   p75, p95, p99, p999    | milliseconds |
+| update_requests                            | global |          search          |  requests/s  |
+| update_errors                              | global |          errors          |   errors/s   |
+| update_errors_by_type                      | global | client, server, timeouts |   errors/s   |
+| update_requests_processing_time            | global |           time           | milliseconds |
+| update_requests_timings                    | global |  min, median, mean, max  | milliseconds |
+| update_requests_processing_time_percentile | global |   p75, p95, p99, p999    | milliseconds |
 
 ## Configuration
 
@@ -63,17 +65,21 @@ module [configuration file](https://github.com/netdata/go.d.plugin/blob/master/c
 To troubleshoot issues with the `solr` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m solr
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m solr
+  ```

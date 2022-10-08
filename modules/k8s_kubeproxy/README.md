@@ -12,16 +12,18 @@ node in your cluster, implementing part of the Kubernetes Service.
 
 This module will monitor one or more `kube-proxy` instances, depending on your configuration.
 
-## Charts
+## Metrics
 
-It produces the following charts:
+All metrics have "k8s_kubeproxy." prefix.
 
-- Sync Proxy Rules in `events/s`
-- Sync Proxy Rules Latency in `observes/s`
-- Sync Proxy Rules Latency Percentage in `%`
-- REST Client HTTP Requests By Status Code in `requests/s`
-- REST Client HTTP Requests By Method in `requests/s`
-- HTTP Requests Duration in `microseconds`
+| Metric                                         | Scope  |                                                   Dimensions                                                   |    Units     |
+|------------------------------------------------|:------:|:--------------------------------------------------------------------------------------------------------------:|:------------:|
+| kubeproxy_sync_proxy_rules                     | global |                                                sync_proxy_rules                                                |   events/s   |
+| kubeproxy_sync_proxy_rules_latency_microsecond | global | 0.001, 0.002, 0.004, 0.008, 0.016, 0.032, 0.064, 0.128, 0.256, 0.512, 1.024, 2.048, 4.096, 8.192, 16.384, +Inf |  observes/s  |
+| kubeproxy_sync_proxy_rules_latency             | global | 0.001, 0.002, 0.004, 0.008, 0.016, 0.032, 0.064, 0.128, 0.256, 0.512, 1.024, 2.048, 4.096, 8.192, 16.384, +Inf |  percentage  |
+| rest_client_requests_by_code                   | global |                                    <i>a dimension per HTTP status code</i>                                     |  requests/s  |
+| rest_client_requests_by_method                 | global |                                       <i>a dimension per HTTP method</i>                                       |  requests/s  |
+| http_request_duration                          | global |                                                 0.5, 0.9, 0.99                                                 | microseconds |
 
 ## Configuration
 
@@ -52,17 +54,21 @@ module [configuration file](https://github.com/netdata/go.d.plugin/blob/master/c
 To troubleshoot issues with the `k8s_kubeproxy` collector, run the `go.d.plugin` with the debug option enabled. The
 output should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m k8s_kubeproxy
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m k8s_kubeproxy
+  ```

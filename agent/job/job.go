@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package job
 
 type Job interface {
@@ -10,4 +12,5 @@ type Job interface {
 	Tick(clock int)
 	Start()
 	Stop()
+	Cleanup()
 }

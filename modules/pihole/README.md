@@ -12,28 +12,27 @@ acts as a DNS sinkhole, intended for use on a private network.
 
 This module will monitor one or more `Pi-hole` instances using [PHP API](https://github.com/pi-hole/AdminLTE).
 
-The API exposed data time frame is `for the last 24 hr`. All collected values are for that time time frame, not for the
+The API exposed data time frame is `for the last 24 hr`. All collected values are for that time frame, not for the
 module collection interval.
 
-## Charts
+## Metrics
 
-It produces the following set of charts:
+All metrics have "pihole." prefix.
 
-- DNS Queries Total (Cached, Blocked and Forwarded) in `queries`
-- DNS Queries in `queries`
-- DNS Queries Percentage in `percentage`
-- Unique Clients in `clients`
-- Domains On Blocklist in `domains`
-- Blocklist Last Update in `seconds`
-- Unwanted Domains Blocking Status in `boolean`
-
-If the web password is set and valid following charts will be added:
-
-- DNS Queries Per Type in `percentage`
-- DNS Queries Per Destination in `percentage`
-- Top Clients in `requests`
-- Top Permitted Domains in `hits`
-- Top Blocked Domains in `hits`
+| Metric                            | Scope  |            Dimensions            |   Units    |
+|-----------------------------------|:------:|:--------------------------------:|:----------:|
+| dns_queries_total                 | global |             queries              |  queries   |
+| dns_queries                       | global |    cached, blocked, forwarded    |  queries   |
+| dns_queries_percentage            | global |    cached, blocked, forwarded    | percentage |
+| unique_clients                    | global |              unique              |  clients   |
+| domains_on_blocklist              | global |            blocklist             |  domains   |
+| blocklist_last_update             | global |               ago                |  seconds   |
+| unwanted_domains_blocking_status  | global |             enabled              |  boolean   |
+| dns_queries_types                 | global | a, aaaa, any, ptr, soa, srv, txt | percentage |
+| dns_queries_forwarded_destination | global |         cache, blocklist         | percentage |
+| top_clients                       | global |  <i>a dimension per client</i>   |  requests  |
+| top_permitted_domains             | global |  <i>a dimension per domain</i>   |    hits    |
+| top_blocked_domains               | global |  <i>a dimension per domain</i>   |    hits    |
 
 ## Configuration
 
@@ -77,7 +76,7 @@ module [configuration file](https://github.com/netdata/go.d.plugin/blob/master/c
 To troubleshoot issues with the `pihole` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
+First, navigate to your plugins' directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
 system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
 to the `netdata` user.
 

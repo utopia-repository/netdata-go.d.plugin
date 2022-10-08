@@ -1,15 +1,19 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package mysql
 
 import (
 	"database/sql"
-	"fmt"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/netdata/go.d.plugin/agent/module"
-
 	"github.com/blang/semver/v4"
+	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
+
+	"github.com/netdata/go.d.plugin/agent/module"
+	"github.com/netdata/go.d.plugin/pkg/web"
 )
 
 func init() {
@@ -18,60 +22,66 @@ func init() {
 	})
 }
 
-type (
-	Config struct {
-		DSN         string `yaml:"dsn"`
-		MyCNF       string `yaml:"my.cnf"`
-		UpdateEvery int    `yaml:"update_every"`
-	}
-	MySQL struct {
-		module.Base
-		Config `yaml:",inline"`
-
-		db        *sql.DB
-		isMariaDB bool
-		version   *semver.Version
-
-		addInnodbDeadlocksOnce *sync.Once
-		addGaleraOnce          *sync.Once
-		addQCacheOnce          *sync.Once
-		addUserStatsCPUOnce    *sync.Once
-
-		doSlaveStatus      bool
-		collectedReplConns map[string]bool
-		doUserStatistics   bool
-		collectedUsers     map[string]bool
-
-		charts *Charts
-	}
-)
-
 func New() *MySQL {
 	return &MySQL{
 		Config: Config{
-			DSN: "root@tcp(localhost:3306)/",
+			DSN:     "root@tcp(localhost:3306)/",
+			Timeout: web.Duration{Duration: time.Second},
 		},
 
-		charts:                 charts.Copy(),
+		charts:                 baseCharts.Copy(),
+		addInnoDBOSLogOnce:     &sync.Once{},
+		addBinlogOnce:          &sync.Once{},
+		addMyISAMOnce:          &sync.Once{},
 		addInnodbDeadlocksOnce: &sync.Once{},
 		addGaleraOnce:          &sync.Once{},
 		addQCacheOnce:          &sync.Once{},
-		addUserStatsCPUOnce:    &sync.Once{},
 		doSlaveStatus:          true,
 		doUserStatistics:       true,
 		collectedReplConns:     make(map[string]bool),
 		collectedUsers:         make(map[string]bool),
+
+		recheckGlobalVarsEvery: time.Minute * 10,
 	}
 }
 
-func (m *MySQL) Cleanup() {
-	if m.db == nil {
-		return
-	}
-	if err := m.db.Close(); err != nil {
-		m.Errorf("cleanup: error on closing the mysql database [%s]: %v", m.DSN, err)
-	}
-	m.db = nil
+type Config struct {
+	DSN         string       `yaml:"dsn"`
+	MyCNF       string       `yaml:"my.cnf"`
+	UpdateEvery int          `yaml:"update_every"`
+	Timeout     web.Duration `yaml:"timeout"`
+}
+
+type MySQL struct {
+	module.Base
+	Config `yaml:",inline"`
+
+	db        *sql.DB
+	safeDSN   string
+	version   *semver.Version
+	isMariaDB bool
+	isPercona bool
+
+	charts *module.Charts
+
+	addInnoDBOSLogOnce     *sync.Once
+	addBinlogOnce          *sync.Once
+	addMyISAMOnce          *sync.Once
+	addInnodbDeadlocksOnce *sync.Once
+	addGaleraOnce          *sync.Once
+	addQCacheOnce          *sync.Once
+
+	doSlaveStatus      bool
+	collectedReplConns map[string]bool
+	doUserStatistics   bool
+	collectedUsers     map[string]bool
+
+	recheckGlobalVarsTime    time.Time
+	recheckGlobalVarsEvery   time.Duration
+	varMaxConns              int64
+	varTableOpenCache        int64
+	varDisabledStorageEngine string
+	varLogBin                string
 }
 
 func (m *MySQL) Init() bool {
@@ -89,37 +99,24 @@ func (m *MySQL) Init() bool {
 		return false
 	}
 
-	if err := m.openConnection(); err != nil {
-		m.Error(err)
+	cfg, err := mysql.ParseDSN(m.DSN)
+	if err != nil {
+		m.Errorf("error on parsing DSN: %v", err)
 		return false
 	}
 
-	m.Debugf("connected using DSN [%s]", m.DSN)
+	cfg.Passwd = strings.Repeat("*", len(cfg.Passwd))
+	m.safeDSN = cfg.FormatDSN()
+
+	m.Debugf("using DSN [%s]", m.DSN)
 	return true
-}
-
-func (m *MySQL) openConnection() error {
-	db, err := sql.Open("mysql", m.DSN)
-	if err != nil {
-		return fmt.Errorf("error on opening a connection with the mysql database [%s]: %v", m.DSN, err)
-	}
-
-	db.SetConnMaxLifetime(1 * time.Minute)
-
-	if err := db.Ping(); err != nil {
-		_ = db.Close()
-		return fmt.Errorf("error on pinging the mysql database [%s]: %v", m.DSN, err)
-	}
-
-	m.db = db
-	return nil
 }
 
 func (m *MySQL) Check() bool {
 	return len(m.Collect()) > 0
 }
 
-func (m *MySQL) Charts() *Charts {
+func (m *MySQL) Charts() *module.Charts {
 	return m.charts
 }
 
@@ -133,4 +130,14 @@ func (m *MySQL) Collect() map[string]int64 {
 		return nil
 	}
 	return mx
+}
+
+func (m *MySQL) Cleanup() {
+	if m.db == nil {
+		return
+	}
+	if err := m.db.Close(); err != nil {
+		m.Errorf("cleanup: error on closing the mysql database [%s]: %v", m.safeDSN, err)
+	}
+	m.db = nil
 }

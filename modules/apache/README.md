@@ -16,19 +16,22 @@ This module will monitor one or more `Apache` servers, depending on your configu
 
 - `Apache` with enabled [`mod_status`](https://httpd.apache.org/docs/2.4/mod/mod_status.html)
 
-## Charts
+## Metrics
 
-It produces the following charts:
+All metrics have "apache." prefix.
 
-- Requests in `requests/s`
-- Connections in `connections`
-- Async Connections in `connections`
-- Scoreboard in `connections`
-- Bandwidth in `kilobits/s`
-- Workers in `workers`
-- Lifetime Average Number Of Requests Per Second in `requests/s`
-- Lifetime Average Number Of Bytes Served Per Second in `KiB/s`
-- Lifetime Average Response Size in `KiB`
+| Metric      | Scope  |                                                 Dimensions                                                  |    Units    |
+|-------------|:------:|:-----------------------------------------------------------------------------------------------------------:|:-----------:|
+| connections | global |                                                 connections                                                 | connections |
+| conns_async | global |                                         keepalive, closing, writing                                         | connections |
+| workers     | global |                                                 idle, busy                                                  |   workers   |
+| scoreboard  | global | waiting, starting, reading, sending, keepalive, dns_lookup, closing, logging, finishing, idle_cleanup, open | connections |
+| requests    | global |                                                  requests                                                   | requests/s  |
+| net         | global |                                                    sent                                                     |  kilobit/s  |
+| reqpersec   | global |                                                  requests                                                   | requests/s  |
+| bytespersec | global |                                                   served                                                    |    KiB/s    |
+| bytesperreq | global |                                                    size                                                     |     KiB     |
+| uptime      | global |                                                   uptime                                                    |   seconds   |
 
 ## Configuration
 
@@ -59,17 +62,21 @@ module [configuration file](https://github.com/netdata/go.d.plugin/blob/master/c
 To troubleshoot issues with the `apache` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m apache
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m apache
+  ```

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package wmi
 
 import (
@@ -18,7 +20,7 @@ type (
 	Dim = module.Dim
 	// Vars is an alias for module.Vars
 	Vars = module.Vars
-	// Dim is an alias for module.Dim
+	// Opts is an alias for module.Dim
 	Opts = module.DimOpts
 )
 
@@ -49,16 +51,22 @@ const (
 	prioDiskAvgLatency
 
 	prioOSProcesses
+	prioOSUsers
+	prioOSVisibleMemoryUsage
+	prioOSPagingUsage
+
 	prioSystemThreads
 	prioSystemUptime
 
 	prioLogonSessions
 
+	prioThermalzoneTemperature
+
 	prioCollectionDuration
 	prioCollectionStatus
 )
 
-func cpuCharts() Charts {
+func newCPUCharts() Charts {
 	return Charts{
 		cpuUtilChart.Copy(),
 		cpuDPCsChart.Copy(),
@@ -103,7 +111,7 @@ var (
 	}
 )
 
-func cpuCoreCharts() Charts {
+func newCPUCoreCharts() Charts {
 	return Charts{
 		cpuCoreUtilChart.Copy(),
 		cpuCoreCStateChart.Copy(),
@@ -143,7 +151,7 @@ var (
 	}
 )
 
-func memCharts() Charts {
+func newMemCharts() Charts {
 	return Charts{
 		memUtilChart.Copy(),
 		memPageFaultsChart.Copy(),
@@ -263,7 +271,7 @@ var (
 	}
 )
 
-func nicCharts() Charts {
+func newNICCharts() Charts {
 	return Charts{
 		nicBandwidthChart.Copy(),
 		nicPacketsChart.Copy(),
@@ -330,7 +338,7 @@ var (
 	}
 )
 
-func diskCharts() Charts {
+func newDiskCharts() Charts {
 	return Charts{
 		diskUtilChart.Copy(),
 		diskBandwidthChart.Copy(),
@@ -393,19 +401,22 @@ var (
 	}
 )
 
-func osCharts() Charts {
+func newOSCharts() Charts {
 	return Charts{
 		osProcessesChart.Copy(),
+		osUsersChart.Copy(),
+		osMemoryUsage.Copy(),
+		osPagingFilesUsageChart.Copy(),
 	}
 }
 
 var (
 	osProcessesChart = Chart{
-		ID:       "system_processes",
+		ID:       "os_processes",
 		Title:    "Processes",
 		Units:    "number",
-		Fam:      "system",
-		Ctx:      "wmi.system_processes",
+		Fam:      "os",
+		Ctx:      "wmi.os_processes",
 		Priority: prioOSProcesses,
 		Dims: Dims{
 			{ID: "os_processes", Name: "processes"},
@@ -414,9 +425,52 @@ var (
 			{ID: "os_processes_limit"},
 		},
 	}
+	osUsersChart = Chart{
+		ID:       "os_users",
+		Title:    "Number of Users",
+		Units:    "users",
+		Fam:      "os",
+		Ctx:      "wmi.os_users",
+		Priority: prioOSUsers,
+		Dims: Dims{
+			{ID: "os_users", Name: "users"},
+		},
+	}
+	osMemoryUsage = Chart{
+		ID:       "os_visible_memory_usage",
+		Title:    "Visible Memory Usage",
+		Units:    "bytes",
+		Fam:      "os",
+		Ctx:      "wmi.os_visible_memory_usage",
+		Type:     module.Stacked,
+		Priority: prioOSVisibleMemoryUsage,
+		Dims: Dims{
+			{ID: "os_physical_memory_free_bytes", Name: "free", Div: 1000},
+			{ID: "os_visible_memory_used_bytes", Name: "used", Div: 1000},
+		},
+		Vars: Vars{
+			{ID: "os_visible_memory_bytes"},
+		},
+	}
+	osPagingFilesUsageChart = Chart{
+		ID:       "os_paging_files_usage",
+		Title:    "Paging Files Usage",
+		Units:    "bytes",
+		Fam:      "os",
+		Ctx:      "wmi.os_paging_files_usage",
+		Type:     module.Stacked,
+		Priority: prioOSPagingUsage,
+		Dims: Dims{
+			{ID: "os_paging_free_bytes", Name: "free", Div: 1000},
+			{ID: "os_paging_used_bytes", Name: "used", Div: 1000},
+		},
+		Vars: Vars{
+			{ID: "os_paging_limit_bytes"},
+		},
+	}
 )
 
-func systemCharts() Charts {
+func newSystemCharts() Charts {
 	return Charts{
 		systemThreadsChart.Copy(),
 		systemUptimeChart.Copy(),
@@ -448,7 +502,7 @@ var (
 	}
 )
 
-func logonCharts() Charts {
+func newLogonCharts() Charts {
 	return Charts{
 		logonSessionsChart.Copy(),
 	}
@@ -481,7 +535,25 @@ var (
 	}
 )
 
-func collectionCharts() *Charts {
+func newThermalzoneCharts() Charts {
+	return Charts{
+		thermalzoneTemperatureChart.Copy(),
+	}
+}
+
+var (
+	thermalzoneTemperatureChart = Chart{
+		ID:       "thermalzone_temperature",
+		Title:    "Thermal zone temperature",
+		Units:    "celsius",
+		Fam:      "thermalzone",
+		Ctx:      "wmi.thermalzone_temperature",
+		Type:     module.Area,
+		Priority: prioThermalzoneTemperature,
+	}
+)
+
+func newCollectionCharts() *Charts {
 	return &Charts{
 		collectionDurationChart.Copy(),
 		collectionsStatusChart.Copy(),
@@ -529,6 +601,7 @@ func (w *WMI) updateCharts(mx *metrics) {
 	w.updateSystemCharts(mx)
 	w.updateOSCharts(mx)
 	w.updateLogonCharts(mx)
+	w.updateThermalzoneCharts(mx)
 }
 
 func (w *WMI) updateCollectionCharts(mx *metrics) {
@@ -555,7 +628,7 @@ func (w *WMI) updateCPUCharts(mx *metrics) {
 	}
 	if !w.cache.collectors[collectorCPU] {
 		w.cache.collectors[collectorCPU] = true
-		if err := w.Charts().Add(cpuCharts()...); err != nil {
+		if err := w.Charts().Add(newCPUCharts()...); err != nil {
 			w.Warning(err)
 		}
 	}
@@ -584,7 +657,7 @@ func (w *WMI) updateMemoryCharts(mx *metrics) {
 		return
 	}
 	w.cache.collectors[collectorMemory] = true
-	if err := w.Charts().Add(memCharts()...); err != nil {
+	if err := w.Charts().Add(newMemCharts()...); err != nil {
 		w.Warning(err)
 	}
 }
@@ -636,7 +709,7 @@ func (w *WMI) updateSystemCharts(mx *metrics) {
 		return
 	}
 	w.cache.collectors[collectorSystem] = true
-	if err := w.Charts().Add(systemCharts()...); err != nil {
+	if err := w.Charts().Add(newSystemCharts()...); err != nil {
 		w.Warning(err)
 	}
 }
@@ -649,7 +722,7 @@ func (w *WMI) updateOSCharts(mx *metrics) {
 		return
 	}
 	w.cache.collectors[collectorOS] = true
-	if err := w.Charts().Add(osCharts()...); err != nil {
+	if err := w.Charts().Add(newOSCharts()...); err != nil {
 		w.Warning(err)
 	}
 }
@@ -662,13 +735,37 @@ func (w *WMI) updateLogonCharts(mx *metrics) {
 		return
 	}
 	w.cache.collectors[collectorLogon] = true
-	if err := w.Charts().Add(logonCharts()...); err != nil {
+	if err := w.Charts().Add(newLogonCharts()...); err != nil {
 		w.Warning(err)
 	}
 }
 
+func (w *WMI) updateThermalzoneCharts(mx *metrics) {
+	if !mx.hasThermalZone() {
+		return
+	}
+
+	if !w.cache.collectors[collectorThermalzone] {
+		w.cache.collectors[collectorThermalzone] = true
+		if err := w.Charts().Add(newThermalzoneCharts()...); err != nil {
+			w.Warning(err)
+		}
+	}
+
+	for _, zone := range mx.ThermalZone.Zones {
+		if w.cache.thermalZones[zone.ID] {
+			continue
+		}
+		w.cache.thermalZones[zone.ID] = true
+		if err := addDimToThermalzoneTemperatureChart(w.Charts(), zone.ID); err != nil {
+			w.Warning(err)
+		}
+	}
+
+}
+
 func addCPUCoreCharts(charts *Charts, coreID string) error {
-	for _, chart := range cpuCoreCharts() {
+	for _, chart := range newCPUCoreCharts() {
 		chart = newChartFromTemplate(*chart, coreID)
 		if err := charts.Add(chart); err != nil {
 			return err
@@ -678,7 +775,7 @@ func addCPUCoreCharts(charts *Charts, coreID string) error {
 }
 
 func addNICCharts(charts *Charts, nicID string) error {
-	for _, chart := range nicCharts() {
+	for _, chart := range newNICCharts() {
 		chart = newChartFromTemplate(*chart, nicID)
 		if err := charts.Add(chart); err != nil {
 			return err
@@ -688,7 +785,7 @@ func addNICCharts(charts *Charts, nicID string) error {
 }
 
 func addLogicalDiskCharts(charts *Charts, diskID string) error {
-	for _, chart := range diskCharts() {
+	for _, chart := range newDiskCharts() {
 		chart = newChartFromTemplate(*chart, diskID)
 		if err := charts.Add(chart); err != nil {
 			return err
@@ -734,6 +831,24 @@ func addDimToCPUInterruptsChart(charts *Charts, coreID string) error {
 		ID:   fmt.Sprintf("cpu_core_%s_interrupts", coreID),
 		Name: "core" + coreID,
 		Algo: module.Incremental,
+		Div:  1000,
+	}
+	if err := chart.AddDim(dim); err != nil {
+		return err
+	}
+	chart.MarkNotCreated()
+	return nil
+}
+
+func addDimToThermalzoneTemperatureChart(charts *Charts, zoneName string) error {
+	chart := charts.Get(thermalzoneTemperatureChart.ID)
+	if chart == nil {
+		return fmt.Errorf("chart '%s' is not in charts", thermalzoneTemperatureChart.ID)
+	}
+	dim := &Dim{
+		ID:   fmt.Sprintf("thermalzone_%s_temperature", zoneName),
+		Name: zoneName,
+		Algo: module.Absolute,
 		Div:  1000,
 	}
 	if err := chart.AddDim(dim); err != nil {

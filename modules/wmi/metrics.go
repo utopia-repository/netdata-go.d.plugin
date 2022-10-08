@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package wmi
 
 import "strconv"
@@ -11,6 +13,7 @@ type metrics struct {
 	OS          *osMetrics          `stm:"os"`
 	System      *systemMetrics      `stm:"system"`
 	Logon       *logonMetrics       `stm:"logon"`
+	ThermalZone *thermalZoneMetrics `stm:"thermalzone"`
 	Collectors  *collectors         `stm:""`
 }
 
@@ -21,6 +24,7 @@ func (m metrics) hasLogicalDisk() bool { return m.LogicalDisk != nil }
 func (m metrics) hasOS() bool          { return m.OS != nil }
 func (m metrics) hasSystem() bool      { return m.System != nil }
 func (m metrics) hasLogon() bool       { return m.Logon != nil }
+func (m metrics) hasThermalZone() bool { return m.ThermalZone != nil }
 func (m metrics) hasCollectors() bool  { return m.Collectors != nil }
 
 // cpu
@@ -163,6 +167,23 @@ type (
 	}
 )
 
+// Win32_perfrawdata_counters_thermalzoneinformation
+// https://wutils.com/wmi/root/cimv2/win32_perfrawdata_counters_thermalzoneinformation/#temperature_properties
+type (
+	thermalZoneMetrics struct {
+		Zones thermalZones `stm:""`
+	}
+
+	thermalZones []*thermalZone
+
+	thermalZone struct {
+		STMKey string
+		ID     string
+
+		Temperature float64 `stm:"temperature,1000,1"`
+	}
+)
+
 // Win32_PerfRawData_PerfOS_System
 // https://docs.microsoft.com/en-us/previous-versions/aa394272(v%3Dvs.85)
 type systemMetrics struct {
@@ -179,17 +200,23 @@ type systemMetrics struct {
 // Win32_OperatingSystem
 // https://docs.microsoft.com/en-us/windows/desktop/CIMWin32Prov/win32-operatingsystem
 type osMetrics struct {
-	PhysicalMemoryFreeBytes float64 `stm:"physical_memory_free_bytes,1000,1"` // FreePhysicalMemory
-	PagingFreeBytes         float64 `stm:"paging_free_bytes,1000,1"`          // FreeSpaceInPagingFiles
-	VirtualMemoryFreeBytes  float64 `stm:"virtual_memory_free_bytes,1000,1"`  // FreeVirtualMemory
-	ProcessesLimit          float64 `stm:"processes_limit"`                   // MaxNumberOfProcesses
-	ProcessMemoryLimitBytes float64 `stm:"process_memory_limit_bytes,1000,1"` // MaxProcessMemorySize
-	Processes               float64 `stm:"processes"`                         // NumberOfProcesses
-	Users                   float64 `stm:"users"`                             // NumberOfUsers
-	PagingLimitBytes        float64 `stm:"paging_limit_bytes,1000,1"`         // SizeStoredInPagingFiles
-	VirtualMemoryBytes      float64 `stm:"virtual_memory_bytes,1000,1"`       // TotalVirtualMemorySize
+	PagingLimitBytes float64 `stm:"paging_limit_bytes,1000,1"` // SizeStoredInPagingFiles
+	PagingFreeBytes  float64 `stm:"paging_free_bytes,1000,1"`  // FreeSpaceInPagingFiles
+	PagingUsedBytes  float64 `stm:"paging_used_bytes,1000,1"`  // PagingLimitBytes - PagingFreeBytes
+
 	VisibleMemoryBytes      float64 `stm:"visible_memory_bytes,1000,1"`       // TotalVisibleMemorySize
-	Time                    float64 `stm:"time"`                              // LocalDateTime
+	PhysicalMemoryFreeBytes float64 `stm:"physical_memory_free_bytes,1000,1"` // FreePhysicalMemory
+	VisibleMemoryUsedBytes  float64 `stm:"visible_memory_used_bytes,1000,1"`  // VisibleMemoryBytes - PhysicalMemoryFreeBytes
+
+	VirtualMemoryBytes     float64 `stm:"virtual_memory_bytes,1000,1"`      // TotalVirtualMemorySize
+	VirtualMemoryFreeBytes float64 `stm:"virtual_memory_free_bytes,1000,1"` // FreeVirtualMemory
+
+	ProcessesLimit          float64 `stm:"processes_limit"`                   // MaxNumberOfProcesses
+	Processes               float64 `stm:"processes"`                         // NumberOfProcesses
+	ProcessMemoryLimitBytes float64 `stm:"process_memory_limit_bytes,1000,1"` // MaxProcessMemorySize
+
+	Users float64 `stm:"users"` // NumberOfUsers
+	Time  float64 `stm:"time"`  // LocalDateTime
 	// Timezone                float64 `stm:"timezone"`                          // LocalDateTime
 }
 
@@ -224,10 +251,11 @@ type (
 	}
 )
 
-func newCollector(id string) *collector { return &collector{STMKey: id, ID: id} }
-func newCPUCore(id string) *cpuCore     { return &cpuCore{STMKey: id, ID: id, id: getCPUIntID(id)} }
-func newNIC(id string) *netNIC          { return &netNIC{STMKey: id, ID: id} }
-func newVolume(id string) *volume       { return &volume{STMKey: id, ID: id} }
+func newCollector(id string) *collector     { return &collector{STMKey: id, ID: id} }
+func newCPUCore(id string) *cpuCore         { return &cpuCore{STMKey: id, ID: id, id: getCPUIntID(id)} }
+func newNIC(id string) *netNIC              { return &netNIC{STMKey: id, ID: id} }
+func newVolume(id string) *volume           { return &volume{STMKey: id, ID: id} }
+func newThermalZone(id string) *thermalZone { return &thermalZone{STMKey: id, ID: id} }
 
 func getCPUIntID(id string) int {
 	if id == "" {
@@ -282,4 +310,15 @@ func (vs *volumes) get(id string) *volume {
 	vol := newVolume(id)
 	*vs = append(*vs, vol)
 	return vol
+}
+
+func (tz *thermalZones) get(id string) *thermalZone {
+	for _, v := range *tz {
+		if v.ID == id {
+			return v
+		}
+	}
+	v := newThermalZone(id)
+	*tz = append(*tz, v)
+	return v
 }

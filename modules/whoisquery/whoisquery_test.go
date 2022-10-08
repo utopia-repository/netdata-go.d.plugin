@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package whoisquery
 
 import (
@@ -38,14 +40,6 @@ func TestWhoisQuery_Init(t *testing.T) {
 		},
 		"empty source": {
 			config: Config{Source: ""},
-			err:    true,
-		},
-		"with http": {
-			config: Config{Source: "http://example.org"},
-			err:    true,
-		},
-		"with https": {
-			config: Config{Source: "https://example.org"},
 			err:    true,
 		},
 	}

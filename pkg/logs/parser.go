@@ -1,9 +1,12 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package logs
 
 import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 )
 
 type ParseError struct {
@@ -58,3 +61,5 @@ func NewParser(config ParserConfig, in io.Reader) (Parser, error) {
 		return nil, fmt.Errorf("invalid type: %q", config.LogType)
 	}
 }
+
+func isNumber(s string) bool { _, err := strconv.Atoi(s); return err == nil }

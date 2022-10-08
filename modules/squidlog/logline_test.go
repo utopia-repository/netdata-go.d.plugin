@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package squidlog
 
 import (
@@ -118,6 +120,7 @@ func TestLogLine_Assign(t *testing.T) {
 				{input: "MOVE", wantLine: logLine{reqMethod: "MOVE"}},
 				{input: "LOCK", wantLine: logLine{reqMethod: "LOCK"}},
 				{input: "UNLOCK", wantLine: logLine{reqMethod: "UNLOCK"}},
+				{input: "NONE", wantLine: logLine{reqMethod: "NONE"}},
 				{input: emptyStr, wantLine: emptyLogLine},
 				{input: hyphen, wantLine: emptyLogLine, wantErr: errBadReqMethod},
 				{input: "get", wantLine: emptyLogLine, wantErr: errBadReqMethod},
@@ -323,6 +326,7 @@ func TestLogLine_verify(t *testing.T) {
 				{input: "MOVE"},
 				{input: "LOCK"},
 				{input: "UNLOCK"},
+				{input: "NONE"},
 				{input: emptyStr},
 				{input: "get", wantErr: errBadReqMethod},
 				{input: "TCP_MISS", wantErr: errBadReqMethod},

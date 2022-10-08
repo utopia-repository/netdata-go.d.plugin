@@ -16,13 +16,15 @@ endpoint provided by [in_monitor plugin](https://docs.fluentd.org/v1.0/articles/
 
 - `fluentd` with enabled monitoring agent
 
-## Charts
+## Metrics
 
-It produces the following charts:
+All metrics have "fluentd." prefix.
 
-- Plugin Retry Count in `count`
-- Plugin Buffer Queue Length in `queue length`
-- Plugin Buffer Total Size in `buffer`
+| Metric                   | Scope  |          Dimensions           |    Units     |
+|--------------------------|:------:|:-----------------------------:|:------------:|
+| retry_count              | global | <i>a dimension per plugin</i> |    count     |
+| buffer_queue_length      | global | <i>a dimension per plugin</i> | queue_length |
+| buffer_total_queued_size | global | <i>a dimension per plugin</i> | queued_size  |
 
 ## Configuration
 
@@ -60,18 +62,22 @@ module [configuration file](https://github.com/netdata/go.d.plugin/blob/master/c
 To troubleshoot issues with the `fluentd` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m fluentd
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m fluentd
+  ```
 

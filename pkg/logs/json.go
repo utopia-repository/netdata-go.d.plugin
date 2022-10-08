@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package logs
 
 import (
@@ -32,6 +34,9 @@ func (p *JSONParser) ReadLine(line LogLine) error {
 	row, err := p.reader.ReadSlice('\n')
 	if err != nil && len(row) == 0 {
 		return err
+	}
+	if len(row) > 0 && row[len(row)-1] == '\n' {
+		row = row[:len(row)-1]
 	}
 	return p.Parse(row, line)
 }

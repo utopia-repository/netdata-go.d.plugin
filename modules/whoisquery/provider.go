@@ -1,12 +1,13 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package whoisquery
 
 import (
-	"fmt"
-	"regexp"
 	"time"
 
-	"github.com/likexian/whois-go"
-	whoisparser "github.com/likexian/whois-parser-go"
+	"github.com/araddon/dateparse"
+	"github.com/likexian/whois"
+	whoisparser "github.com/likexian/whois-parser"
 )
 
 type provider interface {
@@ -15,19 +16,22 @@ type provider interface {
 
 type fromNet struct {
 	domainAddress string
+	client        *whois.Client
 }
 
 func newProvider(config Config) (provider, error) {
-	sourceDomain := config.Source
-	validDomain, _ := regexp.MatchString(`^[a-zA-Z0-9\-]+\.[a-zA-Z0-9]+$`, sourceDomain)
-	if !validDomain {
-		return nil, fmt.Errorf("incorrect domain pattern: %v", sourceDomain)
-	}
-	return &fromNet{domainAddress: sourceDomain}, nil
+	domain := config.Source
+	client := whois.NewClient()
+	client.SetTimeout(config.Timeout.Duration)
+
+	return &fromNet{
+		domainAddress: domain,
+		client:        client,
+	}, nil
 }
 
-func (f fromNet) remainingTime() (float64, error) {
-	raw, err := whois.Whois(f.domainAddress)
+func (f *fromNet) remainingTime() (float64, error) {
+	raw, err := f.client.Whois(f.domainAddress)
 	if err != nil {
 		return 0, err
 	}
@@ -37,13 +41,10 @@ func (f fromNet) remainingTime() (float64, error) {
 		return 0, err
 	}
 
-	expiryRaw := result.Domain.ExpirationDate
-	// The result only has year-month-day
-	isExpiryDateOnly, _ := regexp.MatchString(`^\d{4}-\d{1,2}-\d{1,2}$`, expiryRaw)
-	if isExpiryDateOnly {
-		expiryRaw += "T0:00:00Z"
+	expire, err := dateparse.ParseAny(result.Domain.ExpirationDate)
+	if err != nil {
+		return 0, err
 	}
-	expiry, _ := time.Parse(time.RFC3339, expiryRaw)
-	remainingToExpireSeconds := time.Until(expiry).Seconds()
-	return remainingToExpireSeconds, nil
+
+	return time.Until(expire).Seconds(), nil
 }

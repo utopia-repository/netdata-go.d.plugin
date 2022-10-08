@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package phpfpm
 
 import "github.com/netdata/go.d.plugin/agent/module"
@@ -60,7 +62,7 @@ var charts = Charts{
 		Title: "Last Request CPU Usage Among All Idle Processes",
 		Units: "percentage",
 		Fam:   "request CPU",
-		Ctx:   "phpfpm.request_cp",
+		Ctx:   "phpfpm.request_cpu",
 		Dims: Dims{
 			{ID: "minReqCpu", Name: "min"},
 			{ID: "maxReqCpu", Name: "max"},

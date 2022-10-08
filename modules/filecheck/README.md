@@ -1,7 +1,7 @@
 <!--
 title: "Files and directories monitoring with Netdata"
 description: "Monitor the health and performance of files and directories with zero configuration, per-second metric granularity, and interactive visualizations."
-custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/fileheck/README.md
+custom_edit_url: https://github.com/netdata/go.d.plugin/edit/master/modules/filecheck/README.md
 sidebar_label: "Files and Dirs"
 -->
 
@@ -36,24 +36,22 @@ suggest [to use file access control lists](https://linux.die.net/man/1/setfacl):
 setfacl -m u:netdata:rx file ...
 ``` 
 
-> :warning: For security reasons, this should not be applied recursively, but only to the exact set of directories that lead to the file/dir you want to monitor.
+> **Warning**: For security reasons, this should not be applied recursively, but only to the exact set of directories
+> that lead to the file/dir you want to monitor.
 
-## Charts
+## Metrics
 
-Files and directories have their own set of charts.
+All metrics have "filecheck." prefix.
 
-### Files
-
-- File Existence in `boolean`
-- File Time Since the Last Modification in `seconds`
-- File Size in `bytes`
-
-### Directories
-
-- Dir Existence in `boolean`
-- Dir Time Since the Last Modification in `seconds`
-- Dir Number of Files in `files`
-- Dir Size in `bytes`
+| Metric           | Scope  |            Dimensions            |  Units  |
+|------------------|:------:|:--------------------------------:|:-------:|
+| file_existence   | global |   <i>a dimension per file</i>    | boolean |
+| file_mtime_ago   | global |   <i>a dimension per file</i>    | seconds |
+| file_size        | global |   <i>a dimension per file</i>    |  bytes  |
+| dir_existence    | global | <i>a dimension per directory</i> | boolean |
+| dir_mtime_ago    | global | <i>a dimension per directory</i> | seconds |
+| dir_num_of_files | global | <i>a dimension per directory</i> |  files  |
+| dir_size         | global | <i>a dimension per directory</i> |  bytes  |
 
 ## Configuration
 
@@ -115,17 +113,21 @@ collector's [configuration file](https://github.com/netdata/go.d.plugin/blob/mas
 To troubleshoot issues with the `filecheck` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m filecheck
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m filecheck
+  ```

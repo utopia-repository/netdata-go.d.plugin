@@ -11,28 +11,30 @@ sidebar_label: "Web server logs (Squid)"
 
 This module parses `Squid` access logs.
 
-## Charts
+## Metrics
 
-Module produces following charts:
+All metrics have "squidlog." prefix.
 
-- Total Requests in `requests/s`
-- Excluded Requests in `requests/s`
-- Requests By Type in `requests/s`
-- Responses By HTTP Status Code Class in `responses/s`
-- Responses By HTTP Status Code in `responses/s`
-- Bandwidth in `kilobits/s`
-- Response Time in `milliseconds/s`
-- Unique Clients in `clients/s`
-- Requests By Cache Result Code in `requests/s`
-- Requests By Cache Result Delivery Transport Tag in `requests/s`
-- Requests By Cache Result Handling Tag in `requests/s`
-- Requests By Cache Result Produced Object Tag in `requests/s`
-- Requests By Cache Result Load Source Tag in `requests/s`
-- Requests By Cache Result Errors Tag in `requests/s`
-- Requests By HTTP Method in `requests/s`
-- Requests By MIME Type in `requests/s`
-- Requests By Hierarchy Code in `requests/s`
-- Forwarded Requests By Server Address in `requests/s`
+| Metric                                   | Scope  |                         Dimensions                         |    Units     |
+|------------------------------------------|:------:|:----------------------------------------------------------:|:------------:|
+| requests                                 | global |                          requests                          |  requests/s  |
+| excluded_requests                        | global |                         unmatched                          |  requests/s  |
+| type_requests                            | global |               success, bad, redirect, error                |  requests/s  |
+| http_status_code_class_responses         | global |                  1xx, 2xx, 3xx, 4xx, 5xx                   | responses/s  |
+| http_status_code_responses               | global |         <i>a dimension per HTTP response code</i>          | responses/s  |
+| bandwidth                                | global |                            sent                            |  kilobits/s  |
+| response_time                            | global |                       min, max, avg                        | milliseconds |
+| uniq_clients                             | global |                          clients                           |   clients    |
+| cache_result_code_requests               | global |          <i>a dimension per cache result code</i>          |  requests/s  |
+| cache_result_code_transport_tag_requests | global | <i>a dimension per cache result delivery transport tag</i> |  requests/s  |
+| cache_result_code_handling_tag_requests  | global |      <i>a dimension per cache result handling tag</i>      |  requests/s  |
+| cache_code_object_tag_requests           | global |  <i>a dimension per cache result produced object tag</i>   |  requests/s  |
+| cache_code_load_source_tag_requests      | global |    <i>a dimension per cache result load source tag</i>     |  requests/s  |
+| cache_code_error_tag_requests            | global |       <i>a dimension per cache result error tag</i>        |  requests/s  |
+| http_method_requests                     | global |             <i>a dimension per HTTP method</i>             |  requests/s  |
+| mime_type_requests                       | global |              <i>a dimension per MIME type</i>              |  requests/s  |
+| hier_code_requests                       | global |           <i>a dimension per hierarchy code</i>            |  requests/s  |
+| server_address_forwarded_requests        | global |           <i>a dimension per server address</i>            |  requests/s  |
 
 ## Log Parsers
 
@@ -42,7 +44,7 @@ Squidlog supports 3 log parsers:
 - LTSV
 - RegExp
 
-RegExp is the slowest among them but it is very likely you will need to use it if your log format is not default.
+RegExp is the slowest among them, but it is very likely you will need to use it if your log format is not default.
 
 ## Known Fields
 
@@ -50,28 +52,28 @@ These are `Squid` [log format codes](http://www.squid-cache.org/Doc/config/logfo
 
 Squidlog is aware how to parse and interpret following codes:
 
-| field                   | squid format code | description                                                            |
-|-------------------------|-------------------|------------------------------------------------------------------------|
-| resp_time               | %tr               | Response time (milliseconds).
-| client_address          | %>a               | Client source IP address.
-| client_address          | %>A               | Client FQDN.
-| cache_code              | %Ss               | Squid request status (TCP_MISS etc).
-| http_code               | %>Hs              | The HTTP response status code from Content Gateway to client.
-| resp_size               | %<st              | Total size of reply sent to client (after adaptation).
-| req_method              | %rm               | Request method (GET/POST etc).
-| hier_code               | %Sh               | Squid hierarchy status (DEFAULT_PARENT etc).
-| server_address          | %<a               | Server IP address of the last server or peer connection.
-| server_address          | %<A               | Server FQDN or peer name.
-| mime_type               | %mt               | MIME content type.
+| field          | squid format code | description                                                   |
+|----------------|-------------------|---------------------------------------------------------------|
+| resp_time      | %tr               | Response time (milliseconds).                                 |
+| client_address | %>a               | Client source IP address.                                     |
+| client_address | %>A               | Client FQDN.                                                  |
+| cache_code     | %Ss               | Squid request status (TCP_MISS etc).                          |
+| http_code      | %>Hs              | The HTTP response status code from Content Gateway to client. |
+| resp_size      | %<st              | Total size of reply sent to client (after adaptation).        |
+| req_method     | %rm               | Request method (GET/POST etc).                                |
+| hier_code      | %Sh               | Squid hierarchy status (DEFAULT_PARENT etc).                  |
+| server_address | %<a               | Server IP address of the last server or peer connection.      |
+| server_address | %<A               | Server FQDN or peer name.                                     |
+| mime_type      | %mt               | MIME content type.                                            |
 
 In addition, to
 make `Squid` [native log format](https://wiki.squid-cache.org/Features/LogFormat#Squid_native_access.log_format_in_detail)
 csv parsable, squidlog understands these groups of codes:
 
-| field                   | squid format code | description                                                            |
-|-------------------------|-------------------|------------------------------------------------------------------------|
-| result_code             | %Ss/%>Hs          | Cache code and http code.
-| hierarchy               | %Sh/%<a           | Hierarchy code and server address.
+| field       | squid format code | description                        |
+|-------------|-------------------|------------------------------------|
+| result_code | %Ss/%>Hs          | Cache code and http code.          |
+| hierarchy   | %Sh/%<a           | Hierarchy code and server address. |
 
 ## Custom Log Format
 
@@ -80,7 +82,7 @@ Custom log format is easy. Use [known fields](#known-fields) to construct your l
 - If using CSV parser
 
 **Note**: can be used only if all known squid format codes are separated by csv delimiter. For example, if you
-have `%Ss:%Sh`, csv parser cant extract `%Ss` and `%Sh` from it and you need to use RegExp parser.
+have `%Ss:%Sh`, csv parser cant extract `%Ss` and `%Sh` from it, and you need to use RegExp parser.
 
 Copy your current log format. Replace all known squid format codes with corresponding [known](#known-fields) fields.
 Replaces others with "-".
@@ -144,24 +146,28 @@ jobs:
 ```
 
 For all available options, please see the
-module [configuration file](https://github.com/netdata/go.d.plugin/blob/master/config/go.d/squid_log.conf).
+module [configuration file](https://github.com/netdata/go.d.plugin/blob/master/config/go.d/squidlog.conf).
 
 ## Troubleshooting
 
 To troubleshoot issues with the `squid_log` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m squid_log
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m squid_log
+  ```

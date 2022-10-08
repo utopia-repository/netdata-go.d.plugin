@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package weblog
 
 import (
@@ -30,7 +32,7 @@ import (
 | $server_port            | %p        | Port of the server which accepted a request.
 | $scheme                 | -         | Request scheme. "http" or "https".
 | $remote_addr            | %a (%h)   | Client address.
-| $request                | %r        | Full original request line. The line is "$request_method $request_uri $request_uri".
+| $request                | %r        | Full original request line. The line is "$request_method $request_uri $server_protocol".
 | $request_method         | %m        | Request method. Usually "GET" or "POST".
 | $request_uri            | %U        | Full original request URI.
 | $server_protocol        | %H        | Request protocol. Usually "HTTP/1.0", "HTTP/1.1", or "HTTP/2.0".
@@ -323,19 +325,30 @@ func (l *logLine) assignReqProcTime(time string) error {
 	return nil
 }
 
+func isUpstreamTimeSeparator(r rune) bool { return r == ',' || r == ':' }
+
 func (l *logLine) assignUpsRespTime(time string) error {
 	if time == hyphen {
 		return nil
 	}
-	// times of several responses are separated by commas and colons.
-	if idx := strings.IndexByte(time, ','); idx >= 0 {
-		time = time[0:idx]
+
+	// the upstream response time string can contain multiple values, separated
+	// by commas (in case the request was handled by multiple servers), or colons
+	// (in case the request passed between multiple server groups via an internal redirect)
+	// the individual values should be summed up to obtain the correct amount of time
+	// the request spent in upstream
+	var sum float64
+	for _, val := range strings.FieldsFunc(time, isUpstreamTimeSeparator) {
+		val = strings.TrimSpace(val)
+		v, err := strconv.ParseFloat(val, 64)
+		if err != nil || !isTimeValid(v) {
+			return fmt.Errorf("assign '%s': %w", time, errBadUpsRespTime)
+		}
+
+		sum += v
 	}
-	v, err := strconv.ParseFloat(time, 64)
-	if err != nil || !isTimeValid(v) {
-		return fmt.Errorf("assign '%s': %w", time, errBadUpsRespTime)
-	}
-	l.upsRespTime = v * timeMultiplier(time)
+
+	l.upsRespTime = sum * timeMultiplier(time)
 	return nil
 }
 
@@ -595,7 +608,7 @@ func isSSLProtoValid(proto string) bool {
 
 func timeMultiplier(time string) float64 {
 	// Convert to microseconds:
-	//   - nginx time is in seconds with a milliseconds resolution.
+	//   - nginx time is in seconds with a milliseconds' resolution.
 	if strings.IndexByte(time, '.') > 0 {
 		return 1e6
 	}

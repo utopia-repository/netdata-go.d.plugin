@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package ticker
 
 import (
@@ -5,7 +7,8 @@ import (
 	"time"
 )
 
-var allowedDelta = 100 * time.Millisecond
+// TODO: often fails Circle CI (~200-240)
+var allowedDelta = 500 * time.Millisecond
 
 func TestTickerParallel(t *testing.T) {
 	for i := 0; i < 100; i++ {

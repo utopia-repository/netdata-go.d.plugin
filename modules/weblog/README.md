@@ -9,46 +9,43 @@ sidebar_label: "Web server logs (Apache, NGINX)"
 
 This module parses [`Apache`](https://httpd.apache.org/) and [`NGINX`](https://nginx.org/en/) web servers logs.
 
-## Charts
+## Metrics
 
-Module produces following charts:
+All metrics have "web_log." prefix.
 
-- Total Requests in `requests/s`
-- Excluded Requests in `requests/s`
-- Requests By Type in `requests/s`
-- Responses By Status Code Class in `responses/s`
-- Responses By Status Code in `responses/s`
-- Informational Responses By Status Code in `responses/s`
-- Successful Responses By Status Code in `responses/s`
-- Redirects Responses By Status Code in `responses/s`
-- Client Errors Responses By Status Code in `responses/s`
-- Server Errors Responses By Status Code in `responses/s`
-- Bandwidth in `kilobits/s`
-- Request Processing Time in `milliseconds`
-- Requests Processing Time Histogram in `requests/s`
-- Upstream Response Time in `requests/s`
-- Upstream Responses Time Histogram in `responses/s`
-- Current Poll Unique Clients in `clients`
-- Requests By Vhost in `requests/s`
-- Requests By Port in `requests/s`
-- Requests By Scheme in `requests/s`
-- Requests By HTTP Method in `requests/s`
-- Requests By HTTP Version in `requests/s`
-- Requests By IP Protocol in `requests/s`
-- Requests By SSL Connection Protocol in `requests/s`
-- Requests By SSL Connection Cipher Suite in `requests/s`
-- URL Field Requests By Pattern `requests/s`
-
-For every Custom field:
-
-- Requests By Pattern in `requests/s`
-
-For every URL pattern:
-
-- Responses By Status Code in `responses/s`
-- Requests By HTTP Method in `requests/s`
-- Bandwidth in `kilobits/s`
-- Request Processing Time in `milliseconds`
+| Metric                              |       Scope       |                 Dimensions                  |    Units     |
+|-------------------------------------|:-----------------:|:-------------------------------------------:|:------------:|
+| requests                            |      global       |                  requests                   |  requests/s  |
+| excluded_requests                   |      global       |                  unmatched                  |  requests/s  |
+| type_requests                       |      global       |        success, bad, redirect, error        |  requests/s  |
+| status_code_class_responses         |      global       |           1xx, 2xx, 3xx, 4xx, 5xx           | responses/s  |
+| status_code_class_1xx_responses     |      global       |       <i>a dimension per 1xx code</i>       | responses/s  |
+| status_code_class_2xx_responses     |      global       |       <i>a dimension per 2xx code</i>       | responses/s  |
+| status_code_class_3xx_responses     |      global       |       <i>a dimension per 3xx code</i>       | responses/s  |
+| status_code_class_4xx_responses     |      global       |       <i>a dimension per 4xx code</i>       | responses/s  |
+| status_code_class_5xx_responses     |      global       |       <i>a dimension per 5xx code</i>       | responses/s  |
+| bandwidth                           |      global       |               received, sent                |  kilobits/s  |
+| request_processing_time             |      global       |                min, max, avg                | milliseconds |
+| requests_processing_time_histogram  |      global       |        <i>a dimension per bucket</i>        |  requests/s  |
+| upstream_response_time              |      global       |                min, max, avg                | milliseconds |
+| upstream_responses_time_histogram   |      global       |        <i>a dimension per bucket</i>        |  requests/s  |
+| current_poll_uniq_clients           |      global       |                 ipv4, ipv6                  |   clients    |
+| vhost_requests                      |      global       |        <i>a dimension per vhost</i>         |  requests/s  |
+| port_requests                       |      global       |         <i>a dimension per port</i>         |  requests/s  |
+| scheme_requests                     |      global       |                 http, https                 |  requests/s  |
+| http_method_requests                |      global       |     <i>a dimension per HTTP method</i>      |  requests/s  |
+| http_version_requests               |      global       |     <i>a dimension per HTTP version</i>     |  requests/s  |
+| ip_proto_requests                   |      global       |                 ipv4, ipv6                  |  requests/s  |
+| ssl_proto_requests                  |      global       |     <i>a dimension per SSL protocol</i>     |  requests/s  |
+| ssl_cipher_suite_requests           |      global       |   <i>a dimension per SSL cipher suite</i>   |  requests/s  |
+| url_pattern_requests                |      global       |     <i>a dimension per URL pattern</i>      |  requests/s  |
+| custom_field_pattern_requests       |      global       | <i>a dimension per custom field pattern</i> |  requests/s  |
+| custom_time_field_summary           | custom time field |                min, max, avg                | milliseconds |
+| custom_time_field_histogram         | custom time field |        <i>a dimension per bucket</i>        | observations |
+| url_pattern_status_code_responses   |    URL pattern    |       <i>a dimension per pattern</i>        | responses/s  |
+| url_pattern_http_method_requests    |    URL pattern    |     <i>a dimension per HTTP method</i>      |  requests/s  |
+| url_pattern_bandwidth               |    URL pattern    |               received, sent                |  kilobits/s  |
+| url_pattern_request_processing_time |    URL pattern    |                min, max, avg                | milliseconds |
 
 ## Log Parsers
 
@@ -132,24 +129,24 @@ and [Apache](http://httpd.apache.org/docs/current/mod/mod_log_config.html) log f
 
 Weblog is aware how to parse and interpret the fields:
 
-| nginx                   | apache    | description                                   |
-|-------------------------|-----------|-----------------------------------------------|
-| $host ($http_host)      | %v        | Name of the server which accepted a request.
-| $server_port            | %p        | Port of the server which accepted a request.
-| $scheme                 | -         | Request scheme. "http" or "https".
-| $remote_addr            | %a (%h)   | Client address.
-| $request                | %r        | Full original request line. The line is "$request_method $request_uri $server_protocol".
-| $request_method         | %m        | Request method. Usually "GET" or "POST".
-| $request_uri            | %U        | Full original request URI.
-| $server_protocol        | %H        | Request protocol. Usually "HTTP/1.0", "HTTP/1.1", or "HTTP/2.0".
-| $status                 | %s (%>s)  | Response status code.
-| $request_length         | %I        | Bytes received from a client, including request and headers.
-| $bytes_sent             | %O        | Bytes sent to a client, including request and headers.
-| $body_bytes_sent        | %B (%b)   | Bytes sent to a client, not counting the response header.
-| $request_time           | %D        | Request processing time.
-| $upstream_response_time | -         | Time spent on receiving the response from the upstream server.
-| $ssl_protocol           | -         | Protocol of an established SSL connection.
-| $ssl_cipher             | -         | String of ciphers used for an established SSL connection.
+| nginx                   | apache   | description                                                                              |
+|-------------------------|----------|------------------------------------------------------------------------------------------|
+| $host ($http_host)      | %v       | Name of the server which accepted a request.                                             |
+| $server_port            | %p       | Port of the server which accepted a request.                                             |
+| $scheme                 | -        | Request scheme. "http" or "https".                                                       |
+| $remote_addr            | %a (%h)  | Client address.                                                                          |
+| $request                | %r       | Full original request line. The line is "$request_method $request_uri $server_protocol". |
+| $request_method         | %m       | Request method. Usually "GET" or "POST".                                                 |
+| $request_uri            | %U       | Full original request URI.                                                               |
+| $server_protocol        | %H       | Request protocol. Usually "HTTP/1.0", "HTTP/1.1", or "HTTP/2.0".                         |
+| $status                 | %s (%>s) | Response status code.                                                                    |
+| $request_length         | %I       | Bytes received from a client, including request and headers.                             |
+| $bytes_sent             | %O       | Bytes sent to a client, including request and headers.                                   |
+| $body_bytes_sent        | %B (%b)  | Bytes sent to a client, not counting the response header.                                |
+| $request_time           | %D       | Request processing time.                                                                 |
+| $upstream_response_time | -        | Time spent on receiving the response from the upstream server.                           |
+| $ssl_protocol           | -        | Protocol of an established SSL connection.                                               |
+| $ssl_cipher             | -        | String of ciphers used for an established SSL connection.                                |
 
 In addition to that weblog understands [user defined fields](#custom-fields-feature).
 
@@ -159,7 +156,7 @@ Notes:
   is Off. The web log collector counts hostnames as IPv4 addresses. We recommend either to disable HostnameLookups or
   use `%a` instead of `%h`.
 - Since httpd 2.0, unlike 1.3, the `%b` and `%B` format strings do not represent the number of bytes sent to the client,
-  but simply the size in bytes of the HTTP response. It will will differ, for instance, if the connection is aborted, or
+  but simply the size in bytes of the HTTP response. It will differ, for instance, if the connection is aborted, or
   if SSL is used. The `%O` format provided by [`mod_logio`](https://httpd.apache.org/docs/2.4/mod/mod_logio.html)
   will log the actual number of bytes sent over the network.
 - To get `%I` and `%O` working you need to enable `mod_logio` on Apache.
@@ -198,7 +195,8 @@ Special case:
 
 Both `%t` and `$time_local` fields represent time
 in [Common Log Format](https://www.w3.org/Daemon/User/Config/Logging.html#common-logfile-format). It is a special case
-because it's in fact 2 fields after csv parse (ex.: `[22/Mar/2009:09:30:31 +0100]`). Weblog understands it and you don't
+because it's in fact 2 fields after csv parse (ex.: `[22/Mar/2009:09:30:31 +0100]`). Weblog understands it, and you
+don't
 need to replace it with `-` (if we want to do it we need to make it `- -`).
 
 ```yaml
@@ -292,7 +290,7 @@ info from them.
       format: '%v %a %p %m %H \"%U\" %t %>s %O %I %D %^FB \"%{Referer}i\" \"%{User-Agent}i\" \"%r\"'
     custom_time_fields:
       - name: '^FB'
-        histogram: [ .005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10 ] # optional field
+        histogram: [.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10] # optional field
 ```
 
 ## Configuration
@@ -328,17 +326,21 @@ module [configuration file](https://github.com/netdata/go.d.plugin/blob/master/c
 To troubleshoot issues with the `web_log` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m web_log
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m web_log
+  ```

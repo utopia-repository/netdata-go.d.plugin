@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package wmi
 
 import (
@@ -6,7 +8,7 @@ import (
 	"github.com/netdata/go.d.plugin/pkg/prometheus"
 	"github.com/netdata/go.d.plugin/pkg/stm"
 
-	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/model/labels"
 )
 
 func isValidWindowsExporterMetrics(pms prometheus.Metrics) bool {
@@ -38,12 +40,17 @@ func collect(pms prometheus.Metrics) *metrics {
 		OS:          collectOS(pms),
 		System:      collectSystem(pms),
 		Logon:       collectLogon(pms),
+		ThermalZone: collectThermalzone(pms),
 		Collectors:  collectCollection(pms),
 	}
 
 	if mx.hasOS() && mx.hasMemory() {
 		v := mx.OS.VisibleMemoryBytes - mx.Memory.AvailableBytes
 		mx.Memory.UsedBytes = &v
+	}
+	if mx.hasOS() {
+		mx.OS.PagingUsedBytes = mx.OS.PagingLimitBytes - mx.OS.PagingFreeBytes
+		mx.OS.VisibleMemoryUsedBytes = mx.OS.VisibleMemoryBytes - mx.OS.PhysicalMemoryFreeBytes
 	}
 	return &mx
 }

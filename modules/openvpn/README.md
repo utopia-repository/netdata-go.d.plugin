@@ -17,17 +17,18 @@ This module will monitor one or more `OpenVPN` instances via Management Interfac
 
 - `OpenVPN` with enabled [`management-interface`](https://openvpn.net/community-resources/management-interface/).
 
-## Charts
+## Metrics
 
-It produces the following charts:
+All metrics have "openvpn." prefix.
 
-- Total Number Of Active Clients in `clients`
-- Total Traffic in `kilobits/s`
+> user_* stats are disabled by default, see `per_user_stats` in the module config file.
 
-Per user charts (disabled by default, see `per_user_stats` in the module config file):
-
-- User Traffic in `kilobits/s`
-- User Connection Time in `seconds`
+| Metric               | Scope  | Dimensions |   Units    |
+|----------------------|:------:|:----------:|:----------:|
+| active_clients       | global |  clients   |  clients   |
+| total_traffic        | global |  in, out   | kilobits/s |
+| user_traffic         |  user  |  in, out   | kilobits/s |
+| user_connection_time |  user  |    time    |  seconds   |
 
 ## Configuration
 
@@ -66,17 +67,21 @@ module [configuration file](https://github.com/netdata/go.d.plugin/blob/master/c
 To troubleshoot issues with the `openvpn` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m openvpn
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m openvpn
+  ```

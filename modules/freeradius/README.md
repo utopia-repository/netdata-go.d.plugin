@@ -24,20 +24,22 @@ To enable status feature do the following:
 - `ln -s ../sites-available/status status`
 - restart FreeRADIUS server
 
-## Charts
+## Metrics
 
-It produces following charts:
+All metrics have "freeradius." prefix.
 
-- Authentication in `pps`
-- Authentication Responses in `pps`
-- Bad Authentication Requests in `pps`
-- Proxy Authentication in `pps`
-- Proxy Authentication Responses in `pps`
-- Proxy Bad Authentication Requests in `pps`
-- Accounting in `pps`
-- Bad Accounting Requests in `pps`
-- Proxy Accounting in `pps`
-- Proxy Bad Accounting Requests in `pps`
+| Metric                                | Scope  |                      Dimensions                       |   Units   |
+|---------------------------------------|:------:|:-----------------------------------------------------:|:---------:|
+| authentication                        | global |                  requests, responses                  | packets/s |
+| authentication_access_responses       | global |             accepts, rejects, challenges              | packets/s |
+| bad_authentication                    | global | dropped, duplicate, invalid, malformed, unknown-types | packets/s |
+| proxy_authentication                  | global |                  requests, responses                  | packets/s |
+| proxy_authentication_access_responses | global |             accepts, rejects, challenges              | packets/s |
+| proxy_bad_authentication              | global | dropped, duplicate, invalid, malformed, unknown-types | packets/s |
+| accounting                            | global |                  requests, responses                  | packets/s |
+| bad_accounting                        | global | dropped, duplicate, invalid, malformed, unknown-types | packets/s |
+| proxy_accounting                      | global |                  requests, responses                  | packets/s |
+| proxy_bad_accounting                  | global | dropped, duplicate, invalid, malformed, unknown-types | packets/s |
 
 ## Configuration
 
@@ -69,18 +71,23 @@ module [configuration file](https://github.com/netdata/go.d.plugin/blob/master/c
 To troubleshoot issues with the `freeradius` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m freeradius
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m freeradius
+  ```
+
 

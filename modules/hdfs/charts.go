@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package hdfs
 
 import "github.com/netdata/go.d.plugin/agent/module"
@@ -253,7 +255,7 @@ var fsDatasetStateCharts = Charts{
 		Title: "Capacity",
 		Units: "KiB",
 		Fam:   "fs dataset",
-		Ctx:   "hdfs.capacity",
+		Ctx:   "hdfs.datanode_capacity",
 		Type:  module.Stacked,
 		Dims: Dims{
 			{ID: "fsds_capacity_remaining", Name: "remaining", Div: 1024},
@@ -268,7 +270,7 @@ var fsDatasetStateCharts = Charts{
 		Title: "Used Capacity",
 		Units: "KiB",
 		Fam:   "fs dataset",
-		Ctx:   "hdfs.used_capacity",
+		Ctx:   "hdfs.datanode_used_capacity",
 		Type:  module.Stacked,
 		Dims: Dims{
 			{ID: "fsds_capacity_used_dfs", Name: "dfs", Div: 1024},
@@ -280,7 +282,7 @@ var fsDatasetStateCharts = Charts{
 		Title: "Number of Failed Volumes",
 		Units: "num",
 		Fam:   "fs dataset",
-		Ctx:   "hdfs.num_failed_volumes",
+		Ctx:   "hdfs.datanode_failed_volumes",
 		Dims: Dims{
 			{ID: "fsds_num_failed_volumes", Name: "failed volumes"},
 		},
@@ -293,7 +295,7 @@ var fsDataNodeActivityCharts = Charts{
 		Title: "Bandwidth",
 		Units: "KiB/s",
 		Fam:   "activity",
-		Ctx:   "hdfs.bandwidth",
+		Ctx:   "hdfs.datanode_bandwidth",
 		Type:  module.Area,
 		Dims: Dims{
 			{ID: "dna_bytes_read", Name: "reads", Div: 1024, Algo: module.Incremental},
