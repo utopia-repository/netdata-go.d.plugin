@@ -2,6 +2,9 @@ netdata-go.d.plugin (0.40.3-0utopia1~deb11u1) bullseye; urgency=medium
 
   * New upstream release.
   * patches: drop; merged upstream
+  * Bump netdata verison constraint to (>= 1.36~), (<< 1.38~)
+  * Bump golang version to >= 1.19~
+    - Use vendored dependencies as Debian versions don't match
 
  -- James Lu <james@overdrivenetworks.com>  Sat, 08 Oct 2022 13:12:20 -0700
 

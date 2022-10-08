@@ -5,28 +5,7 @@ Maintainer: Daniel Baumann <daniel.baumann@progress-linux.org>,
 Build-Depends:
  ca-certificates,
  debhelper-compat (= 13),
- golang-any,
- golang-github-apparentlymart-go-cidr-dev,
- golang-github-blang-semver-dev,
- golang-github-cloudflare-cfssl-dev,
- golang-github-coreos-go-systemd-dev,
- golang-github-data-dog-go-sqlmock-dev,
- golang-github-fsnotify-fsnotify-dev,
- golang-github-go-redis-redis-dev,
- golang-github-go-sql-driver-mysql-dev,
- golang-github-gofrs-flock-dev,
- golang-github-mattn-go-isatty-dev,
- golang-github-miekg-dns-dev,
- golang-github-mitchellh-go-homedir-dev,
- golang-github-prometheus-common-dev,
- golang-github-smartystreets-goconvey-dev,
- golang-github-stretchr-testify-dev,
- golang-github-valyala-fastjson-dev,
- golang-github-vmware-govmomi-dev,
- golang-go-flags-dev,
- golang-gopkg-check.v1-dev,
- golang-gopkg-ini.v1-dev,
- golang-gopkg-yaml.v2-dev,
+ golang-any (>= 2:1.19~),
 Rules-Requires-Root: no
 Standards-Version: 4.5.1
 Homepage: https://github.com/netdata/go.d.plugin
@@ -37,8 +16,8 @@ Package: netdata-plugins-go
 Section: net
 Architecture: linux-any
 Depends:
- netdata-core (>= 1.29~) | netdata-core-no-sse (>= 1.29~),
- netdata-core (<< 1.30~) | netdata-core-no-sse (<< 1.30~),
+ netdata-core (>= 1.36~) | netdata-core-no-sse (>= 1.36~),
+ netdata-core (<< 1.38~) | netdata-core-no-sse (<< 1.38~),
  ${misc:Depends},
  ${shlibs:Depends},
 Provides:
