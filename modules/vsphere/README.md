@@ -12,40 +12,39 @@ that provides a centralized platform for controlling your VMware vSphere environ
 
 This module collects hosts and vms performance statistics from one or more `vCenter` servers depending on configuration.
 
-## Charts
+> **Warning**: The `vsphere` collector cannot re-login and continue collecting metrics after a vCenter reboot.
+> go.d.plugin needs to be restarted.
 
-It produces the following charts:
+## Metrics
 
-#### Virtual Machine
+All metrics have "vsphere." prefix.
 
-- Cpu Usage Total in `%`
-- Memory Usage Percentage in `%`
-- Memory Usage in `KiB`
-- VMKernel Memory Swap Rate in `KiB/s`
-- VMKernel Memory Swap in `KiB`
-- Network Bandwidth Total in `KiB/s`
-- Network Packets Total in `packets`
-- Network Drops Total in `packets`
-- Disk Usage Total in `KiB/s`
-- Disk Max Latency in `ms`
-- Overall Alarm Status in `status`
-- System Uptime in `seconds`
-
-#### Host
-
-- Cpu Usage Total in `%`
-- Memory Usage Percentage in `%`
-- Memory Usage in `KiB`
-- VMKernel Memory Swap Rate in `KiB/s`
-- VMKernel Memory Swap in `KiB`
-- Network Bandwidth Total in `KiB/s`
-- Network Packets Total in `packets`
-- Network Drops Total in `packets`
-- Network Errors Total in `errors`
-- Disk Usage Total in `KiB/s`
-- Disk Max Latency in `ms`
-- Overall Alarm Status in `status`
-- System Uptime in `seconds`
+| Metric                    |      Scope      |                   Dimensions                    |   Units    |
+|---------------------------|:---------------:|:-----------------------------------------------:|:----------:|
+| vm_cpu_usage_total        | virtual machine |                      used                       | percentage |
+| vm_mem_usage_percentage   | virtual machine |                      used                       | percentage |
+| vm_mem_usage              | virtual machine |        granted, consumed, active, shared        |    KiB     |
+| vm_mem_swap_rate          | virtual machine |                     in, out                     |   KiB/s    |
+| vm_mem_swap               | virtual machine |                     swapped                     |    KiB     |
+| vm_net_bandwidth_total    | virtual machine |                     rx, tx                      |   KiB/s    |
+| vm_net_packets_total      | virtual machine |                     rx, tx                      |  packets   |
+| vm_net_drops_total        | virtual machine |                     rx, tx                      |  packets   |
+| vm_disk_usage_total       | virtual machine |                   read, write                   |   KiB/s    |
+| vm_disk_max_latency       | virtual machine |                     latency                     |     ms     |
+| vm_overall_status         | virtual machine |                     status                      |   status   |
+| vm_system_uptime          | virtual machine |                      time                       |  seconds   |
+| host_cpu_usage_total      |      host       |                      used                       | percentage |
+| host_mem_usage_percentage |      host       |                      used                       | percentage |
+| host_mem_usage            |      host       | granted, consumed, active, shared, sharedcommon |    KiB     |
+| host_mem_swap_rate        |      host       |                     in, out                     |   KiB/s    |
+| host_net_bandwidth_total  |      host       |                     rx, tx                      |   KiB/s    |
+| host_net_packets_total    |      host       |                     rx, tx                      |  packets   |
+| host_net_drops_total      |      host       |                     rx, tx                      |  packets   |
+| host_net_errors_total     |      host       |                     rx, tx                      |   errors   |
+| host_disk_usage_total     |      host       |                   read, write                   |   KiB/s    |
+| host_disk_max_latency     |      host       |                     latency                     |     ms     |
+| host_overall_status       |      host       |                     status                      |   status   |
+| host_system_uptime        |      host       |                      time                       |  seconds   |
 
 ## Configuration
 
@@ -65,15 +64,15 @@ jobs:
     url: https://203.0.113.0
     username: admin@vsphere.local
     password: somepassword
-    host_include: [ '/*' ]
-    vm_include: [ '/*' ]
+    host_include: ['/*']
+    vm_include: ['/*']
 
   - name: vcenter2
     url: https://203.0.113.10
     username: admin@vsphere.local
     password: somepassword
-    host_include: [ '/*' ]
-    vm_include: [ '/*' ]
+    host_include: ['/*']
+    vm_include: ['/*']
 ```
 
 For all available options please see
@@ -109,7 +108,7 @@ vm_include: # allow all vms from datacenters whose names starts with DC1 and fro
 
 ## Update every
 
-Default `update_every` is 20 seconds and it doesnt make sense to decrease the value. **VMware real-time statistics are
+Default `update_every` is 20 seconds, and it doesn't make sense to decrease the value. **VMware real-time statistics are
 generated at the 20-seconds specificity**.
 
 It is likely that 20 seconds is not enough for big installations and the value should be tuned.
@@ -120,7 +119,7 @@ metrics.
 Example (all not related debug lines were removed):
 
 ```
-[ilyam@pc]$ ./godplugin -d -m vsphere
+[ilyam@pc]$ ./go.d.plugin -d -m vsphere
 [ DEBUG ] vsphere[vsphere] discover.go:94 discovering : starting resource discovering process
 [ DEBUG ] vsphere[vsphere] discover.go:102 discovering : found 3 dcs, process took 49.329656ms
 [ DEBUG ] vsphere[vsphere] discover.go:109 discovering : found 12 folders, process took 49.538688ms
@@ -148,7 +147,7 @@ Example (all not related debug lines were removed):
 ```
 
 There you can see that discovering took `525.614041ms`, collecting metrics took `154.77997ms`. Discovering is a separate
-thread, it doesnt affect collecting.
+thread, it doesn't affect collecting.
 
 `update_every` and `timeout` parameters should be adjusted based on these numbers.
 
@@ -157,17 +156,21 @@ thread, it doesnt affect collecting.
 To troubleshoot issues with the `vsphere` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m vsphere
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m vsphere
+  ```

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package k8s_kubelet
 
 import "github.com/netdata/go.d.plugin/agent/module"
@@ -29,7 +31,7 @@ var charts = Charts{
 		Title: "API Server Failed Data Encryption Key(DEK) Generation Operations",
 		Units: "events/s",
 		Fam:   "api server",
-		Ctx:   "k8s_kubelet.apiserver_audit_requests_rejected",
+		Ctx:   "k8s_kubelet.apiserver_storage_data_key_generation_failures",
 		Dims: Dims{
 			{ID: "apiserver_storage_data_key_generation_failures_total", Name: "failures", Algo: module.Incremental},
 		},
@@ -64,7 +66,7 @@ var charts = Charts{
 		Title: "API Server Latencies Of Data Encryption Key(DEK) Generation Operations Percentage",
 		Units: "%",
 		Fam:   "api server",
-		Ctx:   "k8s_kubelet.apiserver_storage_data_key_generation_latencies",
+		Ctx:   "k8s_kubelet.apiserver_storage_data_key_generation_latencies_percent",
 		Type:  module.Stacked,
 		Dims: Dims{
 			{ID: "apiserver_storage_data_key_generation_bucket_5", Name: "5 µs", Algo: module.PercentOfIncremental},
@@ -127,7 +129,7 @@ var charts = Charts{
 		Title: "Runtime Operations By Type",
 		Units: "operations/s",
 		Fam:   "operations",
-		Ctx:   "k8s_kubelet.kubelet_operations",
+		Ctx:   "k8s_kubelet.kubelet_runtime_operations",
 		Type:  module.Stacked,
 	},
 	{
@@ -135,7 +137,7 @@ var charts = Charts{
 		Title: "Runtime Operations Errors By Type",
 		Units: "errors/s",
 		Fam:   "operations",
-		Ctx:   "k8s_kubelet.kubelet_operations_errors",
+		Ctx:   "k8s_kubelet.kubelet_runtime_operations_errors",
 		Type:  module.Stacked,
 	},
 	{
@@ -143,7 +145,7 @@ var charts = Charts{
 		Title: "Docker Operations By Type",
 		Units: "operations/s",
 		Fam:   "operations",
-		Ctx:   "k8s_kubelet.kubelet_operations",
+		Ctx:   "k8s_kubelet.kubelet_docker_operations",
 		Type:  module.Stacked,
 	},
 	{
@@ -151,7 +153,7 @@ var charts = Charts{
 		Title: "Docker Operations Errors By Type",
 		Units: "errors/s",
 		Fam:   "operations",
-		Ctx:   "k8s_kubelet.kubelet_operations_errors",
+		Ctx:   "k8s_kubelet.kubelet_docker_operations_errors",
 		Type:  module.Stacked,
 	},
 	{
@@ -223,7 +225,7 @@ func newVolumeManagerChart(name string) *Chart {
 	return &Chart{
 		ID:    "volume_manager_total_volumes_" + name,
 		Title: "Volume Manager State Of The World, Plugin " + name,
-		Units: "state of the world",
+		Units: "state",
 		Fam:   "volume manager",
 		Ctx:   "k8s_kubelet.volume_manager_total_volumes",
 		Dims: Dims{

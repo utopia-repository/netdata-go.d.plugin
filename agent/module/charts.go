@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package module
 
 import (
@@ -9,7 +11,7 @@ import (
 
 type (
 	ChartType string
-	dimAlgo   string
+	DimAlgo   string
 )
 
 const (
@@ -22,25 +24,34 @@ const (
 
 	// Absolute dimension algorithm.
 	// The value is to drawn as-is (interpolated to second boundary).
-	Absolute dimAlgo = "absolute"
+	Absolute DimAlgo = "absolute"
 	// Incremental dimension algorithm.
 	// The value increases over time, the difference from the last value is presented in the chart,
 	// the server interpolates the value and calculates a per second figure.
-	Incremental dimAlgo = "incremental"
+	Incremental DimAlgo = "incremental"
 	// PercentOfAbsolute dimension algorithm.
 	// The percent of this value compared to the total of all dimensions.
-	PercentOfAbsolute dimAlgo = "percentage-of-absolute-row"
+	PercentOfAbsolute DimAlgo = "percentage-of-absolute-row"
 	// PercentOfIncremental dimension algorithm.
 	// The percent of this value compared to the incremental total of all dimensions
-	PercentOfIncremental dimAlgo = "percentage-of-incremental-row"
+	PercentOfIncremental DimAlgo = "percentage-of-incremental-row"
 )
 
-func (d dimAlgo) String() string {
+const (
+	// Not documented.
+	// https://github.com/netdata/netdata/blob/cc2586de697702f86a3c34e60e23652dd4ddcb42/database/rrd.h#L204
+
+	LabelSourceAuto = 1 << 0
+	LabelSourceConf = 1 << 1
+	LabelSourceK8s  = 1 << 2
+)
+
+func (d DimAlgo) String() string {
 	switch d {
 	case Absolute, Incremental, PercentOfAbsolute, PercentOfIncremental:
 		return string(d)
 	}
-	return ""
+	return string(Absolute)
 }
 
 func (c ChartType) String() string {
@@ -48,7 +59,7 @@ func (c ChartType) String() string {
 	case Line, Area, Stacked:
 		return string(c)
 	}
-	return ""
+	return string(Line)
 }
 
 type (
@@ -68,7 +79,8 @@ type (
 	Chart struct {
 		// typeID is the unique identification of the chart, if not specified,
 		// the orchestrator will use job full name + chart ID as typeID (default behaviour).
-		typeID string
+		typ string
+		id  string
 
 		ID       string
 		OverID   string
@@ -80,8 +92,9 @@ type (
 		Priority int
 		Opts
 
-		Dims Dims
-		Vars Vars
+		Labels []Label
+		Dims   Dims
+		Vars   Vars
 
 		Retries int
 
@@ -91,8 +104,14 @@ type (
 		// updated flag is used to indicate whether the chart was updated on last data collection interval.
 		updated bool
 
-		// ignore flag is used to indicate that the chart shouldn't be send to the netdata plugins.d
+		// ignore flag is used to indicate that the chart shouldn't be sent to the netdata plugins.d
 		ignore bool
+	}
+
+	Label struct {
+		Key    string
+		Value  string
+		Source int
 	}
 
 	// DimOpts represents dimension options.
@@ -108,7 +127,7 @@ type (
 	Dim struct {
 		ID   string
 		Name string
-		Algo dimAlgo
+		Algo DimAlgo
 		Mul  int
 		Div  int
 		DimOpts

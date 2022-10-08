@@ -1,10 +1,11 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package solr
 
 import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -180,7 +181,7 @@ func (s *Solr) getVersion() error {
 		return fmt.Errorf("error on parsing version '%s': bad format", info.Lucene.Version)
 	}
 
-	if s.version, err = strconv.ParseFloat(info.Lucene.Version[:idx], 10); err != nil {
+	if s.version, err = strconv.ParseFloat(info.Lucene.Version[:idx], 64); err != nil {
 		return fmt.Errorf("error on parsing version '%s' :  %s", info.Lucene.Version, err)
 	}
 
@@ -202,7 +203,7 @@ func createRequest(req web.Request, urlPath, urlQuery string) (*http.Request, er
 
 func closeBody(resp *http.Response) {
 	if resp != nil && resp.Body != nil {
-		_, _ = io.Copy(ioutil.Discard, resp.Body)
+		_, _ = io.Copy(io.Discard, resp.Body)
 		_ = resp.Body.Close()
 	}
 }

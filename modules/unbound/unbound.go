@@ -1,8 +1,11 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package unbound
 
 import (
 	"time"
 
+	"github.com/netdata/go.d.plugin/pkg/socket"
 	"github.com/netdata/go.d.plugin/pkg/tlscfg"
 	"github.com/netdata/go.d.plugin/pkg/web"
 
@@ -38,10 +41,6 @@ func New() *Unbound {
 	}
 }
 
-type unboundClient interface {
-	send(command string) ([]string, error)
-}
-
 type (
 	Config struct {
 		Address          string       `yaml:"address"`
@@ -55,7 +54,7 @@ type (
 		module.Base
 		Config `yaml:",inline"`
 
-		client   unboundClient
+		client   socket.Client
 		cache    collectCache
 		curCache collectCache
 

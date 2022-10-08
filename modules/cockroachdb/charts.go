@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package cockroachdb
 
 import "github.com/netdata/go.d.plugin/agent/module"
@@ -224,7 +226,7 @@ var (
 	chartLiveNodes = Chart{
 		ID:    "live_nodes",
 		Title: "Live Nodes in the Cluster",
-		Units: "num",
+		Units: "nodes",
 		Fam:   "liveness",
 		Ctx:   "cockroachdb.live_nodes",
 		Dims: Dims{
@@ -527,7 +529,7 @@ var (
 	chartRanges = Chart{
 		ID:    "ranges",
 		Title: "Ranges",
-		Units: "num",
+		Units: "ranges",
 		Fam:   "ranges",
 		Ctx:   "cockroachdb.ranges",
 		Dims: Dims{
@@ -637,7 +639,7 @@ var (
 	chartRocksDBSSTables = Chart{
 		ID:    "rocksdb_sstables",
 		Title: "RocksDB SSTables",
-		Units: "num",
+		Units: "sstables",
 		Fam:   "rocksdb",
 		Ctx:   "cockroachdb.rocksdb_sstables",
 		Dims: Dims{
@@ -651,7 +653,7 @@ var (
 	chartReplicas = Chart{
 		ID:    "replicas",
 		Title: "Number of Replicas",
-		Units: "num",
+		Units: "replicas",
 		Fam:   "replication",
 		Ctx:   "cockroachdb.replicas",
 		Dims: Dims{
@@ -673,7 +675,7 @@ var (
 	chartReplicasLeaders = Chart{
 		ID:    "replicas_leaders",
 		Title: "Number of Raft Leaders",
-		Units: "num",
+		Units: "replicas",
 		Fam:   "replication",
 		Ctx:   "cockroachdb.replicas_leaders",
 		Type:  module.Area,
@@ -685,7 +687,7 @@ var (
 	chartReplicasLeaseHolder = Chart{
 		ID:    "replicas_leaseholders",
 		Title: "Number of Leaseholders",
-		Units: "num",
+		Units: "leaseholders",
 		Fam:   "replication",
 		Ctx:   "cockroachdb.replicas_leaseholders",
 		Dims: Dims{
@@ -808,7 +810,7 @@ var (
 	chartGoroutines = Chart{
 		ID:    "goroutines_count",
 		Title: "Number of Goroutines",
-		Units: "num",
+		Units: "goroutines",
 		Fam:   "go/cgo",
 		Ctx:   "cockroachdb.goroutines",
 		Dims: Dims{

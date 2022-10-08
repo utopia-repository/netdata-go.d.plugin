@@ -1,9 +1,14 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package module
 
 import (
 	"bytes"
 	"fmt"
 	"io"
+	"regexp"
+	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,14 +16,39 @@ import (
 	"github.com/netdata/go.d.plugin/logger"
 )
 
+var obsoleteLock = &sync.Mutex{}
+var obsoleteCharts = true
+
+func DontObsoleteCharts() {
+	obsoleteLock.Lock()
+	obsoleteCharts = false
+	obsoleteLock.Unlock()
+}
+
+func shouldObsoleteCharts() bool {
+	obsoleteLock.Lock()
+	defer obsoleteLock.Unlock()
+	return obsoleteCharts
+}
+
 var writeLock = &sync.Mutex{}
 
+var reSpace = regexp.MustCompile(`\s+`)
+
 func newRuntimeChart(pluginName string) *Chart {
+	// this is needed to keep the same name as we had before https://github.com/netdata/go.d.plugin/issues/650
+	ctxName := pluginName
+	if ctxName == "go.d" {
+		ctxName = "go"
+	}
+	ctxName = reSpace.ReplaceAllString(ctxName, "_")
 	return &Chart{
-		typeID: "netdata",
-		Units:  "ms",
-		Fam:    pluginName,
-		Ctx:    "netdata.go_plugin_execution_time", Priority: 145000,
+		typ:      "netdata",
+		Title:    "Execution time",
+		Units:    "ms",
+		Fam:      pluginName,
+		Ctx:      fmt.Sprintf("netdata.%s_plugin_execution_time", ctxName),
+		Priority: 145000,
 		Dims: Dims{
 			{ID: "time"},
 		},
@@ -31,6 +61,7 @@ type JobConfig struct {
 	ModuleName      string
 	FullName        string
 	Module          Module
+	Labels          map[string]string
 	Out             io.Writer
 	UpdateEvery     int
 	AutoDetectEvery int
@@ -54,6 +85,7 @@ func NewJob(cfg JobConfig) *Job {
 		AutoDetectEvery: cfg.AutoDetectEvery,
 		priority:        cfg.Priority,
 		module:          cfg.Module,
+		labels:          cfg.Labels,
 		out:             cfg.Out,
 		AutoDetectTries: infTries,
 		runChart:        newRuntimeChart(cfg.PluginName),
@@ -75,6 +107,7 @@ type Job struct {
 	AutoDetectEvery int
 	AutoDetectTries int
 	priority        int
+	labels          map[string]string
 
 	*logger.Logger
 
@@ -96,9 +129,8 @@ type Job struct {
 	stop chan struct{}
 }
 
-// https://github.com/netdata/netdata/blob/ab0ffcebf802803d1e88f6a5e47a314c292b45e3/database/rrd.h#L59
-// Chart type.id (job.FullName() + '.' + chart.ID)
-const RRD_ID_LENGTH_MAX = 200
+// NetdataChartIDMaxLength is the chart ID max length. See RRD_ID_LENGTH_MAX in the netdata source code.
+const NetdataChartIDMaxLength = 200
 
 // FullName returns job full name.
 func (j Job) FullName() string {
@@ -135,9 +167,12 @@ func (j *Job) AutoDetection() (ok bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			ok = false
-			j.Errorf("PANIC %v", r)
 			j.panicked = true
 			j.disableAutoDetection()
+			j.Errorf("PANIC %v", r)
+			if logger.IsDebug() {
+				j.Errorf("STACK: %s", debug.Stack())
+			}
 		}
 		if !ok {
 			j.module.Cleanup()
@@ -188,7 +223,7 @@ LOOP:
 		}
 	}
 	j.module.Cleanup()
-	j.cleanup()
+	j.Cleanup()
 	j.stop <- struct{}{}
 }
 
@@ -203,11 +238,14 @@ func (j *Job) disableAutoDetection() {
 	j.AutoDetectEvery = 0
 }
 
-func (j *Job) cleanup() {
+func (j *Job) Cleanup() {
 	if j.Logger != nil {
 		logger.GlobalMsgCountWatcher.Unregister(j.Logger)
 	}
 	j.buf.Reset()
+	if !shouldObsoleteCharts() {
+		return
+	}
 
 	if j.runChart.created {
 		j.runChart.MarkRemove()
@@ -221,9 +259,11 @@ func (j *Job) cleanup() {
 			}
 		}
 	}
-	writeLock.Lock()
-	_, _ = io.Copy(j.out, j.buf)
-	writeLock.Unlock()
+	if j.buf.Len() > 0 {
+		writeLock.Lock()
+		_, _ = io.Copy(j.out, j.buf)
+		writeLock.Unlock()
+	}
 }
 
 func (j *Job) init() bool {
@@ -286,8 +326,11 @@ func (j *Job) collect() (result map[string]int64) {
 	j.panicked = false
 	defer func() {
 		if r := recover(); r != nil {
-			j.Errorf("PANIC: %v", r)
 			j.panicked = true
+			j.Errorf("PANIC: %v", r)
+			if logger.IsDebug() {
+				j.Errorf("STACK: %s", debug.Stack())
+			}
 		}
 	}()
 	return j.module.Collect()
@@ -296,7 +339,6 @@ func (j *Job) collect() (result map[string]int64) {
 func (j *Job) processMetrics(metrics map[string]int64, startTime time.Time, sinceLastRun int) bool {
 	if !j.runChart.created {
 		j.runChart.ID = fmt.Sprintf("execution_time_of_%s", j.FullName())
-		j.runChart.Title = fmt.Sprintf("Execution Time for %s", j.FullName())
 		j.createChart(j.runChart)
 	}
 
@@ -306,9 +348,9 @@ func (j *Job) processMetrics(metrics map[string]int64, startTime time.Time, sinc
 	for _, chart := range *j.charts {
 		if !chart.created {
 			typeID := fmt.Sprintf("%s.%s", j.FullName(), chart.ID)
-			if len(typeID) >= RRD_ID_LENGTH_MAX {
+			if len(typeID) >= NetdataChartIDMaxLength {
 				j.Warningf("chart 'type.id' length (%d) >= max allowed (%d), the chart is ignored (%s)",
-					len(typeID), RRD_ID_LENGTH_MAX, typeID)
+					len(typeID), NetdataChartIDMaxLength, typeID)
 				chart.ignore = true
 			}
 			j.createChart(chart)
@@ -345,8 +387,8 @@ func (j *Job) createChart(chart *Chart) {
 		j.priority++
 	}
 	_ = j.api.CHART(
-		firstNotEmpty(chart.typeID, j.FullName()),
-		chart.ID,
+		getChartType(chart, j),
+		getChartID(chart, j),
 		chart.OverID,
 		chart.Title,
 		chart.Units,
@@ -359,9 +401,31 @@ func (j *Job) createChart(chart *Chart) {
 		j.pluginName,
 		j.moduleName,
 	)
+
+	seen := make(map[string]bool)
+	for _, l := range chart.Labels {
+		if l.Key != "" && l.Value != "" {
+			seen[l.Key] = true
+			ls := l.Source
+			// the default should be auto
+			// https://github.com/netdata/netdata/blob/cc2586de697702f86a3c34e60e23652dd4ddcb42/database/rrd.h#L205
+			if ls == 0 {
+				ls = LabelSourceAuto
+			}
+			_ = j.api.CLABEL(l.Key, l.Value, ls)
+		}
+	}
+	for k, v := range j.labels {
+		if !seen[k] {
+			_ = j.api.CLABEL(k, v, LabelSourceConf)
+		}
+	}
+	_ = j.api.CLABEL("_collect_job", j.Name(), LabelSourceAuto)
+	_ = j.api.CLABELCOMMIT()
+
 	for _, dim := range chart.Dims {
 		_ = j.api.DIMENSION(
-			dim.ID,
+			firstNotEmpty(dim.Name, dim.ID),
 			dim.Name,
 			dim.Algo.String(),
 			handleZero(dim.Mul),
@@ -395,8 +459,8 @@ func (j *Job) updateChart(chart *Chart, collected map[string]int64, sinceLastRun
 	}
 
 	_ = j.api.BEGIN(
-		firstNotEmpty(chart.typeID, j.FullName()),
-		chart.ID,
+		getChartType(chart, j),
+		getChartID(chart, j),
 		sinceLastRun,
 	)
 	var i, updated int
@@ -407,9 +471,9 @@ func (j *Job) updateChart(chart *Chart, collected map[string]int64, sinceLastRun
 		chart.Dims[i] = dim
 		i++
 		if v, ok := collected[dim.ID]; !ok {
-			_ = j.api.SETEMPTY(dim.ID)
+			_ = j.api.SETEMPTY(firstNotEmpty(dim.Name, dim.ID))
 		} else {
-			_ = j.api.SET(dim.ID, v)
+			_ = j.api.SET(firstNotEmpty(dim.Name, dim.ID), v)
 			updated++
 		}
 	}
@@ -439,6 +503,36 @@ func (j Job) penalty() int {
 	return v
 }
 
+func getChartType(chart *Chart, j *Job) string {
+	if chart.typ != "" {
+		return chart.typ
+	}
+	if j.ModuleName() != "k8s_state" {
+		return j.FullName()
+	}
+	if i := strings.IndexByte(chart.ID, '.'); i != -1 {
+		chart.typ = j.FullName() + "_" + chart.ID[:i]
+	} else {
+		chart.typ = j.FullName()
+	}
+	return chart.typ
+}
+
+func getChartID(chart *Chart, j *Job) string {
+	if chart.id != "" {
+		return chart.id
+	}
+	if j.ModuleName() != "k8s_state" {
+		return chart.ID
+	}
+	if i := strings.IndexByte(chart.ID, '.'); i != -1 {
+		chart.id = chart.ID[i+1:]
+	} else {
+		chart.id = chart.ID
+	}
+	return chart.id
+}
+
 func calcSinceLastRun(curTime, prevRun time.Time) int {
 	if prevRun.IsZero() {
 		return 0
@@ -450,13 +544,11 @@ func durationTo(duration time.Duration, to time.Duration) int {
 	return int(int64(duration) / (int64(to) / int64(time.Nanosecond)))
 }
 
-func firstNotEmpty(values ...string) string {
-	for _, v := range values {
-		if v != "" {
-			return v
-		}
+func firstNotEmpty(val1, val2 string) string {
+	if val1 != "" {
+		return val1
 	}
-	return ""
+	return val2
 }
 
 func handleZero(v int) int {

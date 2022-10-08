@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package squidlog
 
 import (
@@ -19,7 +21,7 @@ func New() *SquidLog {
 		LogType: logs.TypeCSV,
 		CSV: logs.CSVConfig{
 			FieldsPerRecord:  -1,
-			Delimiter:        ' ',
+			Delimiter:        " ",
 			TrimLeadingSpace: true,
 			Format:           "- $resp_time $client_address $result_code $resp_size $req_method - - $hierarchy $mime_type",
 			CheckField:       checkCSVFormatField,
@@ -61,7 +63,7 @@ func (s *SquidLog) Init() bool {
 }
 
 func (s *SquidLog) Check() bool {
-	// Note: these inits are here to make auto detection retry working
+	// Note: these inits are here to make auto-detection retry working
 	if err := s.createLogReader(); err != nil {
 		s.Warning("check failed: ", err)
 		return false

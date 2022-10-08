@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package main
 
 import (
@@ -89,7 +91,7 @@ func main() {
 	opts := parseCLI()
 
 	if opts.Version {
-		fmt.Println(fmt.Sprintf("go.d.plugin, version: %s", version))
+		fmt.Printf("go.d.plugin, version: %s\n", version)
 		return
 	}
 

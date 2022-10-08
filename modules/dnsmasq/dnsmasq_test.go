@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package dnsmasq
 
 import (
@@ -110,8 +112,7 @@ func TestDnsmasq_Collect(t *testing.T) {
 		"success on valid response": {
 			prepare: prepareOKDnsmasq,
 			wantCollected: map[string]int64{
-				"auth":           5,
-				"cache_entries":  5,
+				//"auth":           5,
 				"cachesize":      999,
 				"evictions":      5,
 				"failed_queries": 9,
@@ -193,7 +194,7 @@ type mockDNSClient struct {
 	rcodeServerFailureOnExchange bool
 }
 
-func (m mockDNSClient) Exchange(msg *dns.Msg, address string) (*dns.Msg, time.Duration, error) {
+func (m mockDNSClient) Exchange(msg *dns.Msg, _ string) (*dns.Msg, time.Duration, error) {
 	if m.errOnExchange {
 		return nil, 0, errors.New("'Exchange' error")
 	}

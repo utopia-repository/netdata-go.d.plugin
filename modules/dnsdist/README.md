@@ -21,20 +21,24 @@ Used endpoints:
 
 For collecting metrics via HTTP, we need [enabled webserver](https://dnsdist.org/guides/webserver.html).
 
-## Charts
+## Metrics
 
-- Client queries received in `queries/s`
-- Client queries dropped in `queries/s`
-- Packets dropped in `packets/s`
-- Answers statistics in `answers/s`
-- Backend responses in `responses/s`
-- Backend communication errors in `errors/s`
-- Backend error responses in `responses/s`
-- Cache performance in `answers/s`
-- DNSdist server CPU utilization in `ms/s`
-- DNSdist server memory utilization in `MiB`
-- Query latency in `queries/s`
-- Average latency for the last N queries in `microseconds`
+All metrics have "dnsdist." prefix.
+
+| Metric             | Scope  |                     Dimensions                     |    Units     |
+|--------------------|:------:|:--------------------------------------------------:|:------------:|
+| queries            | global |               all, recursive, empty                |  queries/s   |
+| queries_dropped    | global | rule_drop, dynamic_blocked, no_policy, non_queries |  queries/s   |
+| packets_dropped    | global |                        acl                         |  packets/s   |
+| answers            | global |  self_answered, nxdomain, refused, trunc_failures  |  answers/s   |
+| backend_responses  | global |                     responses                      | responses/s  |
+| backend_commerrors | global |                    send_errors                     |   errors/s   |
+| backend_errors     | global |         timeouts, servfail, non_compliant          | responses/s  |
+| cache              | global |                    hits, misses                    |  answers/s   |
+| servercpu          | global |              system_state, user_state              |     ms/s     |
+| servermem          | global |                    memory_usage                    |     MiB      |
+| query_latency      | global |         1ms, 10ms, 50ms, 100ms, 1sec, slow         |  queries/s   |
+| query_latency_avg  | global |                100, 1k, 10k, 1000k                 | microseconds |
 
 ## Configuration
 
@@ -71,17 +75,22 @@ collector's [configuration file](https://github.com/netdata/go.d.plugin/blob/mas
 To troubleshoot issues with the `dnsdist` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m dnsdist
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m dnsdist
+  ```
+

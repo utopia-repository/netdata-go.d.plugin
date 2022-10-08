@@ -10,12 +10,15 @@ sidebar_label: "Prometheus endpoints"
 The generic Prometheus endpoint collector gathers metrics from [`Prometheus`](https://prometheus.io/) endpoints that use
 the [OpenMetrics exposition format](https://prometheus.io/docs/instrumenting/exposition_formats/).
 
-As of v1.24, Netdata can autodetect more than 600 Prometheus endpoints, including support for Windows 10 via
-`windows_exporter`, and instantly generate new charts with the same high-granularity, per-second frequency as you expect
-from other collectors.
+- As of v1.24, Netdata can autodetect more than 600 Prometheus endpoints, including support for Windows 10 via
+  `windows_exporter`, and instantly generate new charts with the same high-granularity, per-second frequency as you
+  expect from other collectors.
 
-The full list of endpoints is available in the
-collector's [configuration file](https://github.com/netdata/go.d.plugin/blob/master/config/go.d/prometheus.conf).
+- The full list of endpoints is available in the
+  collector's [configuration file](https://github.com/netdata/go.d.plugin/blob/master/config/go.d/prometheus.conf).
+
+- Collecting metrics
+  from [Prometheus endpoints in Kubernetes](https://github.com/netdata/helmchart#prometheus-endpoints).
 
 ## Charts
 
@@ -46,6 +49,26 @@ jobs:
 
   - name: win10
     url: http://203.0.113.0:9182/metrics
+```
+
+### Dimension algorithm
+
+`incremental` algorithm (values displayed as rate) used when:
+
+- the metric type is `Counter`, `Histogram` or `Summary`.
+- the metrics suffix is `_total`, `_sum` or `_count`.
+
+`absolute` algorithm (values displayed as is) is used in all other cases.
+
+Use `force_absolute_algorithm` configuration option to overwrite the logic.
+
+```yaml
+jobs:
+  - name: node_exporter_local
+    url: http://127.0.0.1:9100/metrics
+    force_absolute_algorithm:
+      - '*_sum'
+      - '*_count'
 ```
 
 ### Time Series Selector (filtering)
@@ -181,8 +204,6 @@ example_seconds_bucket{interval="30s",le="5"} 0
 example_seconds_bucket{interval="30s",le="+Inf"} 0
 ```
 
----
-
 For all available options, see the Prometheus
 collector's [configuration file](https://github.com/netdata/go.d.plugin/blob/master/config/go.d/prometheus.conf).
 
@@ -191,17 +212,21 @@ collector's [configuration file](https://github.com/netdata/go.d.plugin/blob/mas
 To troubleshoot issues with the `prometheus` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m prometheus
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m prometheus
+  ```

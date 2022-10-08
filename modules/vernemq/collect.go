@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package vernemq
 
 import (
@@ -155,14 +157,6 @@ func collectQueues(mx map[string]float64, pms prometheus.Metrics) {
 		metricQueueTeardown,
 	)
 	collectNonMQTT(mx, pms)
-	mx["queue_messages_current"] = calcQueueMessagesCurrent(mx)
-}
-
-func calcQueueMessagesCurrent(mx map[string]float64) float64 {
-	undelivered := mx[metricQueueMessageDrop] + mx[metricQueueMessageExpired] + mx[metricQueueMessageUnhandled]
-	out := mx[metricQueueMessageOut]
-	in := mx[metricQueueMessageIn]
-	return in - (out + undelivered)
 }
 
 func collectSubscriptions(mx map[string]float64, pms prometheus.Metrics) {

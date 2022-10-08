@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package logs
 
 import (
@@ -9,7 +11,7 @@ import (
 )
 
 var testCSVConfig = CSVConfig{
-	Delimiter: ' ',
+	Delimiter: " ",
 	Format:    "$A %B",
 }
 

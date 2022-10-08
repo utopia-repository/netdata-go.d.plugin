@@ -7,29 +7,32 @@ sidebar_label: "ZooKeeper"
 
 # Apache ZooKeeper monitoring with Netdata
 
-[`ZooKeeper`](https://zookeeper.apache.org/) is a centralized service for maintaining configuration information, naming,
+[ZooKeeper](https://zookeeper.apache.org/) is a centralized service for maintaining configuration information, naming,
 providing distributed synchronization, and providing group services.
 
-This module monitors one or more `ZooKeeper` servers, depending on your configuration.
+This module monitors one or more ZooKeeper servers, depending on your configuration. It fetches metrics from ZooKeeper
+by using the [mntr](https://zookeeper.apache.org/doc/r3.4.8/zookeeperAdmin.html#sc_zkCommands) command.
 
 ## Requirements
 
 - `Zookeeper` with accessible client port
 - whitelisted `mntr` command
 
-## Charts
+## Metrics
 
-It produces the following charts:
+All metrics have "zookeeper." prefix.
 
-- Outstanding Requests in `requests`
-- Requests Latency in `ms`
-- Alive Connections in `connections`
-- Packets in `pps`
-- Open File Descriptors in `file descriptors`
-- Number of Nodes in `nodes`
-- Number of Watches in `watches`
-- Approximate Data Tree Size in `KiB`
-- Server State in `state`
+| Metric                | Scope  |    Dimensions     |      Units       |
+|-----------------------|:------:|:-----------------:|:----------------:|
+| requests              | global |    outstanding    |     requests     |
+| requests_latency      | global |   min, avg, max   |        ms        |
+| connections           | global |       alive       |   connections    |
+| packets               | global |  received, sent   |       pps        |
+| file_descriptor       | global |       open        | file descriptors |
+| nodes                 | global | znode, ephemerals |      nodes       |
+| watches               | global |      watches      |     watches      |
+| approximate_data_size | global |       size        |       KiB        |
+| server_state          | global |       state       |      state       |
 
 ## Configuration
 
@@ -60,17 +63,21 @@ module [configuration file](https://github.com/netdata/go.d.plugin/blob/master/c
 To troubleshoot issues with the `zookeeper` collector, run the `go.d.plugin` with the debug option enabled. The output
 should give you clues as to why the collector isn't working.
 
-First, navigate to your plugins directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on your
-system, open `netdata.conf` and look for the setting `plugins directory`. Once you're in the plugin's directory, switch
-to the `netdata` user.
+- Navigate to the `plugins.d` directory, usually at `/usr/libexec/netdata/plugins.d/`. If that's not the case on
+  your system, open `netdata.conf` and look for the `plugins` setting under `[directories]`.
 
-```bash
-cd /usr/libexec/netdata/plugins.d/
-sudo -u netdata -s
-```
+  ```bash
+  cd /usr/libexec/netdata/plugins.d/
+  ```
 
-You can now run the `go.d.plugin` to debug the collector:
+- Switch to the `netdata` user.
 
-```bash
-./go.d.plugin -d -m zookeeper
-```
+  ```bash
+  sudo -u netdata -s
+  ```
+
+- Run the `go.d.plugin` to debug the collector:
+
+  ```bash
+  ./go.d.plugin -d -m zookeeper
+  ```

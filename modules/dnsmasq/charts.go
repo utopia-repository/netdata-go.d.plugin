@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package dnsmasq
 
 import "github.com/netdata/go.d.plugin/agent/module"
@@ -15,15 +17,13 @@ var cacheCharts = module.Charts{
 		},
 	},
 	{
-		ID:    "cache_entries",
-		Title: "Cache entries",
+		ID:    "cache_size",
+		Title: "Cache size",
 		Units: "entries",
 		Fam:   "cache",
-		Ctx:   "dnsmasq.cache_entries",
-		Type:  module.Area,
+		Ctx:   "dnsmasq.cache_size",
 		Dims: module.Dims{
-			{ID: "cachesize", Name: "max"},
-			{ID: "cache_entries", Name: "current"},
+			{ID: "cachesize", Name: "size"},
 		},
 	},
 	{
